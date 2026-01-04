@@ -3,11 +3,13 @@ import Link from "next/link";
 const steps = [
   {
     title: "Define location",
-    body: "Selecciona la ciudad o sector y ajusta el nivel de preparación para que las recomendaciones encajen con tu contexto.",
+    body:
+      "Selecciona la ciudad o sector y ajusta el nivel de preparación para que las recomendaciones encajen con tu contexto.",
   },
   {
     title: "Elige escenario y momento",
-    body: "Combina el código de escenario (NUK, FLO, etc.) con el momento temporal (PRE/POST) para ajustar rutas y advertencias.",
+    body:
+      "Combina el código de escenario (NUK, FLO, etc.) con el momento temporal (PRE/POST) para ajustar rutas y advertencias.",
   },
   {
     title: "Añade nodos y personas",
@@ -18,12 +20,13 @@ const steps = [
     body: "Activa preferencias como evitar avenidas, infra críticas o zonas turísticas para priorizar itinerarios más seguros.",
   },
   {
-    title: "Revisa la carta A6",
-    body: "El panel de vista previa genera la carta en vivo con rejillas TVA, referencias de nodos y detalles de nivel.",
+    title: "Revisa la carta A6/A7",
+    body:
+      "El panel de vista previa genera la carta en vivo con ruta origen → DP1..DP3 → destino, bullets STG0..STG3 y la lista do/don&apos;t.",
   },
   {
     title: "Exporta y comparte",
-    body: "Pulsa \"Generate → Results\" para guardar cambios y descargar el PDF listo para imprimir o compartir.",
+    body: "Pulsa \"Generate → Results\" para guardar cambios y descargar el PDF listo para imprimir o laminar.",
   },
 ];
 
@@ -65,9 +68,9 @@ export default function HowItWorksPage() {
         <div className="card-frame p-5 space-y-3">
           <h3 className="font-display text-2xl">¿Qué ocurre al generar?</h3>
           <p className="text-sm text-ink/80">
-            Guardamos tus entradas, aplicamos las preferencias de seguridad y renderizamos la carta con la cuadrícula A6,
-            nodos etiquetados y el reloj TVA para sincronizar equipos. En la pantalla de resultados puedes exportar el PDF,
-            compartirlo o ajustar detalles finales sin perder los datos previos.
+            Guardamos tus entradas, aplicamos las preferencias de seguridad y renderizamos una sola carta A6/A7 con la ruta
+            origen → DP1..DP3 → destino, bullets STG0..STG3 y la lista do/don&apos;t. En la pantalla de resultados puedes exportar el
+            PDF, compartirlo o pedir la versión impresa/laminada sin perder los datos previos.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link className="ink-button" href="/generator">

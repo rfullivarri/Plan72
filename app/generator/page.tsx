@@ -5,7 +5,7 @@ import MascotPanel from "@/components/MascotPanel";
 import ScenarioSelector from "@/components/ScenarioSelector";
 import StageTimeline from "@/components/StageTimeline";
 import { usePlan } from "@/components/PlanContext";
-import { MOMENT_CODES, PLAN_LEVELS, SCENARIO_CODES } from "@/lib/constants";
+import { MOMENT_CODES, PLAN_LEVELS } from "@/lib/constants";
 import { cityTemplates } from "@/lib/cityTemplates";
 import { PlanInput } from "@/lib/schema";
 import { useMemo, useState } from "react";
@@ -30,7 +30,7 @@ export default function GeneratorPage() {
 
     if (cityTemplates[nextCity]) {
       loadCityPreset(nextCity, {
-        scenario: input.scenario,
+        scenarios: input.scenarios,
         moment: input.moment,
         level: input.level,
         resourceNodes: input.resourceNodes,
@@ -48,7 +48,7 @@ export default function GeneratorPage() {
       { id: "N1", label: "Clinic", lat: 41.4, lng: 2.18, types: ["D", "A"] },
     ];
 
-    loadCityPreset("BCN", { scenario: "NUK", moment: "POST", level: "STANDARD", resourceNodes: sampleNodes });
+    loadCityPreset("BCN", { scenarios: ["NUK"], moment: "POST", level: "STANDARD", resourceNodes: sampleNodes });
     router.push("/results");
   };
 
@@ -146,18 +146,14 @@ export default function GeneratorPage() {
                 </select>
               </label>
               <label className="space-y-1 text-sm font-semibold">
-                Scenario
-                <select
+                Team size
+                <input
+                  type="number"
+                  min={1}
                   className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
-                  value={input.scenario}
-                  onChange={(e) => updateInput("scenario", e.target.value as (typeof SCENARIO_CODES)[number])}
-                >
-                  {SCENARIO_CODES.map((code) => (
-                    <option key={code} value={code}>
-                      {code}
-                    </option>
-                  ))}
-                </select>
+                  value={input.peopleCount}
+                  onChange={(e) => updateInput("peopleCount", parseInt(e.target.value, 10) || 0)}
+                />
               </label>
               <label className="space-y-1 text-sm font-semibold">
                 Moment

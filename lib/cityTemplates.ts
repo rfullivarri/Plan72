@@ -47,7 +47,7 @@ export function buildPlanInputFromTemplate(city: string, overrides: Partial<Plan
       city: template.city,
       start: template.defaults.start,
       peopleCount: template.defaults.peopleCount,
-      scenario: "NUK",
+      scenarios: ["NUK"],
       moment: "POST",
       level: template.defaults.level,
       preferences: basePreferences,
@@ -60,6 +60,7 @@ export function buildPlanInputFromTemplate(city: string, overrides: Partial<Plan
       start: overrides.start ?? base.start,
       preferences: { ...base.preferences, ...overrides.preferences },
       resourceNodes: overrides.resourceNodes ?? base.resourceNodes,
+      scenarios: overrides.scenarios ?? base.scenarios,
     };
   }
 
@@ -67,7 +68,7 @@ export function buildPlanInputFromTemplate(city: string, overrides: Partial<Plan
     city,
     start: overrides.start ?? { lat: 0, lng: 0, label: "Start" },
     peopleCount: overrides.peopleCount ?? 1,
-    scenario: overrides.scenario ?? "UNK",
+    scenarios: overrides.scenarios ?? ["UNK"],
     moment: overrides.moment ?? "PRE",
     level: overrides.level ?? "BASIC",
     preferences: { ...basePreferences, ...overrides.preferences },

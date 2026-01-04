@@ -1,6 +1,7 @@
 export type ScenarioCode = "AIR" | "NUK" | "CIV" | "EQK" | "UNK";
 export type MomentCode = "PRE" | "POST";
 export type PlanLevel = "BASIC" | "STANDARD" | "ADVANCED";
+export type StageKey = "STG0" | "STG1" | "STG2" | "STG3";
 
 export interface Coordinate {
   lat: number;
@@ -27,7 +28,7 @@ export interface PlanInput {
   city: string;
   start: Coordinate;
   peopleCount: number;
-  scenario: ScenarioCode;
+  scenarios: ScenarioCode[];
   moment: MomentCode;
   level: PlanLevel;
   preferences: {
@@ -39,31 +40,48 @@ export interface PlanInput {
   resourceNodes: ResourceNode[];
 }
 
+export interface StagePlan {
+  stage: StageKey;
+  window: string;
+  mode: "MOVE" | "SHELTER";
+  actions: string[];
+}
+
+export interface ScenarioCard {
+  id: string;
+  scenario: ScenarioCode;
+  label: string;
+  mode: "MOVE" | "SHELTER";
+  routeSummary: string;
+  map: {
+    corridor: Coordinate[];
+    decisionPoints: Coordinate[];
+    alts: RouteAlternative[];
+    intent: string;
+    objective: string;
+  };
+  stages: StagePlan[];
+  do: string[];
+  dont: string[];
+  resourcePriority: Array<"A" | "B" | "C" | "D" | "E" | "F">;
+  resourceNodes: ResourceNode[];
+}
+
 export interface PlanOutput {
   meta: {
     id: string;
     generatedAt: string;
   };
-  mode: "MOVE" | "SHELTER";
-  stages: Array<{
-    stage: string;
-    actions: {
-      do: string[];
-      dont: string[];
-    };
-    nextCard?: string;
-  }>;
   routes: {
     base: {
       corridor: Coordinate[];
       decisionPoints: Coordinate[];
       alts: RouteAlternative[];
+      intent: string;
     };
   };
-  cards: Array<{
-    id: string;
-    stage: string;
-    front: Record<string, unknown>;
-    back: Record<string, unknown>;
+  scenarioPlans: Array<{
+    scenario: ScenarioCode;
+    card: ScenarioCard;
   }>;
 }

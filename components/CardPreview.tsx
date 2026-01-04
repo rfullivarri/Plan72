@@ -1,21 +1,19 @@
 "use client";
 
-import { humanizeLevel, humanizeScenario, usePlan } from "./PlanContext";
+import { humanizeLevel, humanizeScenarioList, usePlan } from "./PlanContext";
 
 export default function CardPreview() {
   const { input, plan } = usePlan();
-  const actionCard = plan.cards.find((card) => card.id.includes("ACT") && card.stage === plan.stages[0]?.stage);
-  const statusCard = plan.cards.find((card) => card.id.includes("STS"));
+  const primaryCard = plan.scenarioPlans[0]?.card;
   const corridor = plan.routes.base.corridor;
-  const corridorText = corridor.map((point) => point.label ?? "").join(" → ");
+  const corridorText = primaryCard?.routeSummary ?? corridor.map((point) => point.label ?? "").join(" → ");
 
-  const objective = typeof actionCard?.front["objective"] === "string" ? actionCard.front["objective"] : "Live objective";
-  const actionWindow = typeof actionCard?.front["window"] === "string" ? actionCard.front["window"] : "00:00";
-  const nextStage = typeof actionCard?.front["next"] === "string" ? actionCard.front["next"] : "Stage linked";
-  const doList = Array.isArray(actionCard?.front["do"]) ? (actionCard.front["do"] as unknown[]).map(String) : undefined;
-  const nodePriorities = Array.isArray(statusCard?.front["priority"])
-    ? (statusCard.front["priority"] as unknown[]).map(String)
-    : undefined;
+  const firstStage = primaryCard?.stages[0];
+  const objective = primaryCard?.label ?? "Live objective";
+  const actionWindow = firstStage?.window ?? "00:00";
+  const doList = primaryCard?.do ?? [];
+  const nodePriorities = primaryCard?.resourcePriority;
+  const scenarioLabel = humanizeScenarioList(input.scenarios);
 
   return (
     <div className="relative mx-auto max-w-md">
@@ -27,17 +25,17 @@ export default function CardPreview() {
         <header className="space-y-1">
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-olive">Protocol draft</p>
           <h3 className="font-display text-4xl leading-tight">
-            {input.city} – {input.scenario} – {input.moment}
+            {input.city} – {scenarioLabel} – {input.moment}
           </h3>
-          <p className="text-sm text-ink/80">Nivel {humanizeLevel(input.level)} · {humanizeScenario(input.scenario)} focus</p>
+          <p className="text-sm text-ink/80">Nivel {humanizeLevel(input.level)} · {primaryCard?.mode ?? "MOVE"} focus</p>
         </header>
 
         <div className="mt-4 space-y-3">
           <div className="flex items-center justify-between rounded-xl border-2 border-ink/60 bg-[rgba(255,255,255,0.6)] px-4 py-3">
             <div className="flex items-center gap-3">
-              <span className="rounded-full bg-ink px-3 py-1 text-xs font-mono text-paper">{actionCard?.stage ?? "STG"}</span>
+              <span className="rounded-full bg-ink px-3 py-1 text-xs font-mono text-paper">{firstStage?.stage ?? "STG"}</span>
               <div>
-                <p className="text-xs font-mono text-olive">{plan.mode}</p>
+                <p className="text-xs font-mono text-olive">{primaryCard?.mode ?? "MOVE"}</p>
                 <p className="text-sm font-semibold">{objective}</p>
               </div>
             </div>
@@ -48,7 +46,7 @@ export default function CardPreview() {
             <div className="space-y-2 rounded-xl border-2 border-ink/50 bg-[rgba(245,232,204,0.7)] p-3">
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Do</p>
               <ul className="list-disc space-y-1 pl-4 text-ink/80">
-                {(doList ?? ["Esperando inputs…"]).map((item, idx) => (
+                {(doList.length > 0 ? doList : ["Esperando inputs…"]).map((item, idx) => (
                   <li key={idx}>{item}</li>
                 ))}
               </ul>
@@ -63,7 +61,7 @@ export default function CardPreview() {
 
           <div className="flex items-center justify-between rounded-xl border-2 border-ink/60 bg-[rgba(255,255,255,0.5)] px-4 py-2 font-mono text-xs uppercase tracking-[0.2em] text-olive">
             <span>Nodes: {nodePriorities?.join(" · ") ?? "Pending"}</span>
-            <span className="text-ink">{nextStage}</span>
+            <span className="text-ink">{firstStage?.mode ?? "S"}</span>
           </div>
         </div>
 

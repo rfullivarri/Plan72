@@ -7,6 +7,7 @@ export default function CardPreview() {
   const actionCard = plan.cards.find((card) => card.id.includes("ACT") && card.stage === plan.stages[0]?.stage);
   const statusCard = plan.cards.find((card) => card.id.includes("STS"));
   const corridor = plan.routes.base.corridor;
+  const corridorText = corridor.map((point) => point.label ?? "").join(" → ");
 
   const objective = typeof actionCard?.front["objective"] === "string" ? actionCard.front["objective"] : "Live objective";
   const actionWindow = typeof actionCard?.front["window"] === "string" ? actionCard.front["window"] : "00:00";
@@ -55,11 +56,7 @@ export default function CardPreview() {
             <div className="space-y-2 rounded-xl border-2 border-ink/50 bg-[rgba(255,255,255,0.7)] p-3">
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Corridor</p>
               <div className="space-y-1 text-ink/80">
-                {corridor.slice(0, 3).map((point, idx) => (
-                  <p key={point.label ?? idx}>
-                    {String(idx + 1).padStart(2, "0")} · {point.label} ({point.lat.toFixed(2)}, {point.lng.toFixed(2)})
-                  </p>
-                ))}
+                <p>{corridorText}</p>
               </div>
             </div>
           </div>

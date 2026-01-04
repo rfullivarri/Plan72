@@ -46,8 +46,14 @@ assert.ok(statusCard);
 assert.deepStrictEqual(statusCard?.front["priority"], ["A", "C", "E", "B"]);
 
 // Route scaffold
-assert.strictEqual(plan.routes.base.corridor.length, 4);
+assert.strictEqual(plan.routes.base.corridor.length, 5);
 assert.strictEqual(plan.routes.base.decisionPoints.length, 3);
+assert.strictEqual(plan.routes.base.corridor[0]?.label, "Forum");
+assert.strictEqual(
+  plan.routes.base.corridor[plan.routes.base.corridor.length - 1]?.label,
+  "Collserola (green high ground)",
+);
+assert.strictEqual(plan.routes.base.alts.length, 2);
 
 // Card mix
 const cardTypes = ["RTE", "ACT", "STS", "CHK"];

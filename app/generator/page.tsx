@@ -6,13 +6,14 @@ import ScenarioSelector from "@/components/ScenarioSelector";
 import StageTimeline from "@/components/StageTimeline";
 import { usePlan } from "@/components/PlanContext";
 import { MOMENT_CODES, PLAN_LEVELS, SCENARIO_CODES } from "@/lib/constants";
+import { cityTemplates } from "@/lib/cityTemplates";
 import { PlanInput } from "@/lib/schema";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function GeneratorPage() {
   const router = useRouter();
-  const { input, updateInput, updatePreference, lowInkMode, toggleLowInkMode, lastSavedAt } = usePlan();
+  const { input, updateInput, updatePreference, lowInkMode, toggleLowInkMode, lastSavedAt, loadCityPreset } = usePlan();
   const [newNode, setNewNode] = useState({ label: "", lat: "", lng: "", types: "A" });
 
   const savedLabel = useMemo(() => {
@@ -21,6 +22,33 @@ export default function GeneratorPage() {
   }, [lastSavedAt]);
 
   const handleGenerate = () => {
+    router.push("/results");
+  };
+
+  const handleCityChange = (value: string) => {
+    const nextCity = value || "BCN";
+
+    if (cityTemplates[nextCity]) {
+      loadCityPreset(nextCity, {
+        scenario: input.scenario,
+        moment: input.moment,
+        level: input.level,
+        resourceNodes: input.resourceNodes,
+        peopleCount: input.peopleCount,
+      });
+      return;
+    }
+
+    updateInput("city", nextCity);
+  };
+
+  const handleBCNPreset = () => {
+    const sampleNodes: PlanInput["resourceNodes"] = [
+      { id: "N0", label: "Home", lat: 41.39, lng: 2.16, types: ["A", "C", "E"] },
+      { id: "N1", label: "Clinic", lat: 41.4, lng: 2.18, types: ["D", "A"] },
+    ];
+
+    loadCityPreset("BCN", { scenario: "NUK", moment: "POST", level: "STANDARD", resourceNodes: sampleNodes });
     router.push("/results");
   };
 
@@ -60,13 +88,23 @@ export default function GeneratorPage() {
                 <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Input stack</p>
                 <h2 className="font-display text-2xl">Location & readiness</h2>
               </div>
-              <button
-                onClick={handleGenerate}
-                className="ink-button flex items-center gap-2"
-                aria-label="Generate protocol and go to results"
-              >
-                Generate → Results
-              </button>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleBCNPreset}
+                  className="ink-button flex items-center gap-2"
+                  aria-label="Load Barcelona preset and go to results"
+                >
+                  BCN preset
+                </button>
+                <button
+                  onClick={handleGenerate}
+                  className="ink-button flex items-center gap-2"
+                  aria-label="Generate protocol and go to results"
+                >
+                  Generate → Results
+                </button>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-mono text-olive">
               <button
@@ -87,7 +125,7 @@ export default function GeneratorPage() {
                   className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
                   placeholder="BCN-Arc-12"
                   value={input.city}
-                  onChange={(e) => updateInput("city", e.target.value || "BCN")}
+                  onChange={(e) => handleCityChange(e.target.value)}
                 />
               </label>
               <label className="space-y-1 text-sm font-semibold">

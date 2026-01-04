@@ -71,6 +71,16 @@ export default function MapCorridor() {
             </li>
           ))}
         </ul>
+        {plan.routes.base.alts.length > 0 && (
+          <div className="mt-3 space-y-1 text-sm">
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-olive">Alternativas</p>
+            <ul className="list-disc pl-4 space-y-1">
+              {plan.routes.base.alts.map((alt) => (
+                <li key={alt.id}>{alt.id} · {alt.label}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.2em] text-olive">Resource Nodes</p>
         <ul className="text-sm space-y-1">
           {resourceNodes.length > 0 ? (

@@ -60,7 +60,8 @@ export default function MapCorridor() {
     <div className="card-frame p-4">
       <div className="font-display text-xl">Corridor</div>
       <p className="text-sm text-ink/80">
-        Map placeholder for decision points y Resource Nodes. Por ahora mostramos la lista con mock pin.
+        Mapa esencial con origen, DP1..DP3 y destino. Mientras llega el render visual, listamos cada punto con coordenadas para
+        imprimir en la carta.
       </p>
       <div className="mt-3 h-40 bg-[repeating-linear-gradient(45deg,var(--paper-shadow),var(--paper-shadow)_10px,var(--paper-edge)_10px,var(--paper-edge)_20px)] border-2 border-ink rounded-lg p-3 overflow-y-auto">
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-olive">Corridor</p>

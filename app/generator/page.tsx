@@ -72,7 +72,10 @@ export default function GeneratorPage() {
           <div>
             <p className="font-mono text-xs text-olive tracking-[0.25em]">WIZARD</p>
             <h1 className="font-display text-4xl">Protocol Generator</h1>
-            <p className="text-sm text-ink/80">Texturas de papel, reloj TVA y carta A6 en vivo mientras ajustas entradas.</p>
+            <p className="text-sm text-ink/80">
+              El resultado es una sola carta por escenario: ruta de escape con origen, DP1..DP3 y destino, más bullets STG0..STG3
+              con do/don&apos;t. Ajusta aquí los datos y mira la carta A6/A7 actualizarse al vuelo.
+            </p>
           </div>
           <div className="rounded-full border-4 border-ink bg-[rgba(255,255,255,0.7)] px-4 py-2 text-sm font-mono uppercase tracking-[0.2em]">
             Atlas on duty

@@ -4,6 +4,57 @@ import { usePlan } from "./PlanContext";
 
 export default function MapCorridor() {
   const { plan } = usePlan();
+  const statusCard = plan.cards.find((card) => card.id.includes("STS"));
+
+  type ResourceNode = {
+    id: string;
+    label: string;
+    lat: number;
+    lng: number;
+    types: string[];
+  };
+
+  const resourceNodes: ResourceNode[] = Array.isArray(statusCard?.front["nodes"])
+    ? (statusCard.front["nodes"] as unknown[])
+        .map((node) => {
+          if (
+            node &&
+            typeof node === "object" &&
+            "id" in node &&
+            "label" in node &&
+            "lat" in node &&
+            "lng" in node &&
+            "types" in node
+          ) {
+            const castNode = node as {
+              id: unknown;
+              label: unknown;
+              lat: unknown;
+              lng: unknown;
+              types: unknown;
+            };
+
+            if (
+              typeof castNode.id === "string" &&
+              typeof castNode.label === "string" &&
+              typeof castNode.lat === "number" &&
+              typeof castNode.lng === "number" &&
+              Array.isArray(castNode.types)
+            ) {
+              return {
+                id: castNode.id,
+                label: castNode.label,
+                lat: castNode.lat,
+                lng: castNode.lng,
+                types: castNode.types.map(String),
+              } satisfies ResourceNode;
+            }
+          }
+
+          return null;
+        })
+        .filter(Boolean) as ResourceNode[]
+    : [];
 
   return (
     <div className="card-frame p-4">
@@ -22,13 +73,15 @@ export default function MapCorridor() {
         </ul>
         <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.2em] text-olive">Resource Nodes</p>
         <ul className="text-sm space-y-1">
-          {plan.cards
-            .find((card) => card.id.includes("STS"))?.front["nodes"]
-            ?.map((node: any) => (
+          {resourceNodes.length > 0 ? (
+            resourceNodes.map((node) => (
               <li key={node.id}>
                 📍 {node.label} ({node.lat.toFixed(3)}, {node.lng.toFixed(3)}) · {node.types.join(",")}
               </li>
-            )) || <li>Agrega nodos en el wizard.</li>}
+            ))
+          ) : (
+            <li>Agrega nodos en el wizard.</li>
+          )}
         </ul>
       </div>
     </div>

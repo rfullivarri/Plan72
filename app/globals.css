@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import "leaflet/dist/leaflet.css";
+
 :root {
   --paper: #f5e8cc;
   --paper-shadow: #e5d3a8;

@@ -36,7 +36,7 @@ export default function GeneratorPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10 space-y-8">
-      <header className="manual-surface relative overflow-hidden px-6 py-8 sm:px-8">
+      <header id="how" className="manual-surface relative overflow-hidden px-6 py-8 sm:px-8">
         <div className="absolute left-0 top-0 h-20 w-20 bg-[var(--rust)]/30 blur-3xl" aria-hidden />
         <div className="absolute bottom-0 right-0 h-24 w-24 bg-[var(--olive)]/30 blur-3xl" aria-hidden />
         <div className="hero-grid" aria-hidden />

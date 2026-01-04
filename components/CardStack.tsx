@@ -15,7 +15,9 @@ export default function CardStack() {
               <p className="font-mono text-xs text-olive">{card.id}</p>
               <p className="font-semibold">Stage {card.stage}</p>
             </div>
-            <span className="text-sm font-mono">{card.front["objective"] ?? "A6/A7"}</span>
+            <span className="text-sm font-mono">
+              {typeof card.front["objective"] === "string" ? card.front["objective"] : "A6/A7"}
+            </span>
           </li>
         ))}
       </ul>

@@ -14,9 +14,9 @@
   --warning: #d9a441;
   --accent: #8aae3b;
 
-  --font-display: "Bebas Neue";
-  --font-body: "Inter";
-  --font-mono: "IBM Plex Mono";
+  --font-display: "Bebas Neue", "Oswald", "Impact", "Arial Black", system-ui, sans-serif;
+  --font-body: "Inter", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", "Consolas", "Liberation Mono", monospace;
 }
 
 body {
@@ -107,7 +107,7 @@ main {
 }
 
 .card-frame {
-  @apply border-4 border-ink bg-paper/90 rounded-2xl shadow-[16px_20px_0px_rgba(27,26,20,0.14)] text-ink;
+  @apply border-4 border-ink bg-paper bg-opacity-90 rounded-2xl shadow-[16px_20px_0px_rgba(27,26,20,0.14)] text-ink;
   position: relative;
   overflow: hidden;
 }

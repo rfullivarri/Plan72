@@ -8,6 +8,14 @@ export default function CardPreview() {
   const statusCard = plan.cards.find((card) => card.id.includes("STS"));
   const corridor = plan.routes.base.corridor;
 
+  const objective = typeof actionCard?.front["objective"] === "string" ? actionCard.front["objective"] : "Live objective";
+  const actionWindow = typeof actionCard?.front["window"] === "string" ? actionCard.front["window"] : "00:00";
+  const nextStage = typeof actionCard?.front["next"] === "string" ? actionCard.front["next"] : "Stage linked";
+  const doList = Array.isArray(actionCard?.front["do"]) ? (actionCard.front["do"] as unknown[]).map(String) : undefined;
+  const nodePriorities = Array.isArray(statusCard?.front["priority"])
+    ? (statusCard.front["priority"] as unknown[]).map(String)
+    : undefined;
+
   return (
     <div className="relative mx-auto max-w-md">
       <div className="absolute -inset-4 border-4 border-ink rounded-3xl rotate-1 opacity-60"></div>
@@ -29,19 +37,19 @@ export default function CardPreview() {
               <span className="rounded-full bg-ink px-3 py-1 text-xs font-mono text-paper">{actionCard?.stage ?? "STG"}</span>
               <div>
                 <p className="text-xs font-mono text-olive">{plan.mode}</p>
-                <p className="text-sm font-semibold">{actionCard?.front["objective"] ?? "Live objective"}</p>
+                <p className="text-sm font-semibold">{objective}</p>
               </div>
             </div>
-            <span className="text-xs font-mono text-ink/70">{actionCard?.front["window"] ?? "00:00"}</span>
+            <span className="text-xs font-mono text-ink/70">{actionWindow}</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="space-y-2 rounded-xl border-2 border-ink/50 bg-[rgba(245,232,204,0.7)] p-3">
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Do</p>
               <ul className="list-disc space-y-1 pl-4 text-ink/80">
-                {(actionCard?.front["do"] as string[] | undefined)?.map((item, idx) => (
+                {(doList ?? ["Esperando inputs…"]).map((item, idx) => (
                   <li key={idx}>{item}</li>
-                )) || <li>Esperando inputs…</li>}
+                ))}
               </ul>
             </div>
             <div className="space-y-2 rounded-xl border-2 border-ink/50 bg-[rgba(255,255,255,0.7)] p-3">
@@ -57,8 +65,8 @@ export default function CardPreview() {
           </div>
 
           <div className="flex items-center justify-between rounded-xl border-2 border-ink/60 bg-[rgba(255,255,255,0.5)] px-4 py-2 font-mono text-xs uppercase tracking-[0.2em] text-olive">
-            <span>Nodes: {(statusCard?.front["priority"] as string[] | undefined)?.join(" · ") ?? "Pending"}</span>
-            <span className="text-ink">{actionCard?.front["next"] ?? "Stage linked"}</span>
+            <span>Nodes: {nodePriorities?.join(" · ") ?? "Pending"}</span>
+            <span className="text-ink">{nextStage}</span>
           </div>
         </div>
 

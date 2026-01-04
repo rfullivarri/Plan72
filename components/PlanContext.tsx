@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
+import { ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { buildPlanInputFromTemplate, defaultCityTemplate } from "@/lib/cityTemplates";
 import { generatePlan } from "@/lib/planEngine";
@@ -43,8 +43,12 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     if (savedProfile) {
       try {
         const parsed = JSON.parse(savedProfile) as { input: PlanInput; savedAt?: string };
-        setInput(parsed.input);
-        setPlan(generatePlan(parsed.input));
+        const normalizedInput = {
+          ...parsed.input,
+          scenarios: parsed.input.scenarios ?? ("scenario" in parsed.input ? [(parsed.input as unknown as { scenario?: ScenarioCode }).scenario ?? "UNK"] : ["UNK"]),
+        } satisfies PlanInput;
+        setInput(normalizedInput);
+        setPlan(generatePlan(normalizedInput));
         setLastSavedAt(parsed.savedAt ?? null);
       } catch (error) {
         console.warn("Failed to parse saved Plan72 profile", error);
@@ -89,51 +93,51 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(handle);
   }, [input, hasHydrated]);
 
-  const updateInput = <K extends keyof PlanInput>(key: K, value: PlanInput[K]) => {
+  const updateInput = useCallback(<K extends keyof PlanInput>(key: K, value: PlanInput[K]) => {
     setInput((prev) => ({ ...prev, [key]: value }));
-  };
+  }, []);
 
-  const updatePreference = (key: keyof PlanInput["preferences"], value: boolean) => {
+  const updatePreference = useCallback((key: keyof PlanInput["preferences"], value: boolean) => {
     setInput((prev) => ({
       ...prev,
       preferences: { ...prev.preferences, [key]: value },
     }));
-  };
+  }, []);
 
-  const addResourceNode = (node: Omit<PlanInput["resourceNodes"][number], "id">) => {
+  const addResourceNode = useCallback((node: Omit<PlanInput["resourceNodes"][number], "id">) => {
     const id = crypto.randomUUID ? crypto.randomUUID() : `N-${Date.now()}`;
     setInput((prev) => ({
       ...prev,
       resourceNodes: [...prev.resourceNodes, { ...node, id }],
     }));
-  };
+  }, []);
 
-  const updateResourceNode = (
-    id: string,
-    update: Partial<Omit<PlanInput["resourceNodes"][number], "id">>,
-  ) => {
-    setInput((prev) => ({
-      ...prev,
-      resourceNodes: prev.resourceNodes.map((node) =>
-        node.id === id ? { ...node, ...update } : node,
-      ),
-    }));
-  };
+  const updateResourceNode = useCallback(
+    (id: string, update: Partial<Omit<PlanInput["resourceNodes"][number], "id">>) => {
+      setInput((prev) => ({
+        ...prev,
+        resourceNodes: prev.resourceNodes.map((node) =>
+          node.id === id ? { ...node, ...update } : node,
+        ),
+      }));
+    },
+    [],
+  );
 
-  const removeResourceNode = (id: string) => {
+  const removeResourceNode = useCallback((id: string) => {
     setInput((prev) => ({
       ...prev,
       resourceNodes: prev.resourceNodes.filter((node) => node.id !== id),
     }));
-  };
+  }, []);
 
-  const toggleLowInkMode = () => setLowInkMode((prev) => !prev);
+  const toggleLowInkMode = useCallback(() => setLowInkMode((prev) => !prev), []);
 
-  const loadCityPreset = (city: string, overrides: Partial<PlanInput> = {}) => {
+  const loadCityPreset = useCallback((city: string, overrides: Partial<PlanInput> = {}) => {
     setInput(buildPlanInputFromTemplate(city, overrides));
-  };
+  }, []);
 
-  const persistProfile = () => {
+  const persistProfile = useCallback(() => {
     const savedAt = new Date().toISOString();
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ input, savedAt }));
@@ -141,7 +145,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.warn("Manual profile save failed", error);
     }
-  };
+  }, [input]);
 
   const value = useMemo(
     () => ({
@@ -159,7 +163,21 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       removeResourceNode,
       loadCityPreset,
     }),
-    [input, plan, isRegenerating, lowInkMode, lastSavedAt],
+    [
+      input,
+      plan,
+      isRegenerating,
+      lowInkMode,
+      lastSavedAt,
+      persistProfile,
+      updateInput,
+      updatePreference,
+      addResourceNode,
+      updateResourceNode,
+      removeResourceNode,
+      loadCityPreset,
+      toggleLowInkMode,
+    ],
   );
 
   return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;
@@ -182,6 +200,10 @@ export function humanizeScenario(scenario: ScenarioCode) {
     UNK: "Unknown",
   };
   return map[scenario];
+}
+
+export function humanizeScenarioList(scenarios: ScenarioCode[]) {
+  return scenarios.map(humanizeScenario).join(" + ");
 }
 
 export function humanizeLevel(level: PlanLevel) {

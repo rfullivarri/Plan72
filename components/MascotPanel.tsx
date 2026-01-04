@@ -8,6 +8,8 @@ interface MascotPanelProps {
 
 export default function MascotPanel({ floating }: MascotPanelProps) {
   const { input, plan, isRegenerating, lowInkMode } = usePlan();
+  const primaryScenario = input.scenarios[0] ?? "UNK";
+  const primaryCard = plan.scenarioPlans[0]?.card;
 
   const moodByScenario: Record<string, { label: string; detail: string; orbClass: string }> = {
     AIR: { label: "Breezy", detail: "Filtro activo", orbClass: "mascot-orb--air" },
@@ -17,11 +19,11 @@ export default function MascotPanel({ floating }: MascotPanelProps) {
     CIV: { label: "Discreto", detail: "Perfil bajo", orbClass: "mascot-orb--unk" },
   };
 
-  const mood = moodByScenario[input.scenario] ?? moodByScenario.UNK;
+  const mood = moodByScenario[primaryScenario] ?? moodByScenario.UNK;
 
   const tip = isRegenerating
     ? "Procesando inputs…"
-    : `${mood.detail} · ${plan.mode} · ${plan.stages[0]?.actions.do[0] ?? "Listo"}`;
+    : `${mood.detail} · ${primaryCard?.mode ?? "MOVE"} · ${primaryCard?.stages[0]?.actions[0] ?? "Listo"}`;
 
   return (
     <div

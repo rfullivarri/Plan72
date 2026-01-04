@@ -4,57 +4,7 @@ import { usePlan } from "./PlanContext";
 
 export default function MapCorridor() {
   const { plan } = usePlan();
-  const statusCard = plan.cards.find((card) => card.id.includes("STS"));
-
-  type ResourceNode = {
-    id: string;
-    label: string;
-    lat: number;
-    lng: number;
-    types: string[];
-  };
-
-  const resourceNodes: ResourceNode[] = Array.isArray(statusCard?.front["nodes"])
-    ? (statusCard.front["nodes"] as unknown[])
-        .map((node) => {
-          if (
-            node &&
-            typeof node === "object" &&
-            "id" in node &&
-            "label" in node &&
-            "lat" in node &&
-            "lng" in node &&
-            "types" in node
-          ) {
-            const castNode = node as {
-              id: unknown;
-              label: unknown;
-              lat: unknown;
-              lng: unknown;
-              types: unknown;
-            };
-
-            if (
-              typeof castNode.id === "string" &&
-              typeof castNode.label === "string" &&
-              typeof castNode.lat === "number" &&
-              typeof castNode.lng === "number" &&
-              Array.isArray(castNode.types)
-            ) {
-              return {
-                id: castNode.id,
-                label: castNode.label,
-                lat: castNode.lat,
-                lng: castNode.lng,
-                types: castNode.types.map(String),
-              } satisfies ResourceNode;
-            }
-          }
-
-          return null;
-        })
-        .filter(Boolean) as ResourceNode[]
-    : [];
+  const resourceNodes = plan.scenarioPlans[0]?.card.resourceNodes ?? [];
 
   return (
     <div className="card-frame p-4">
@@ -63,6 +13,7 @@ export default function MapCorridor() {
         Mapa esencial con origen, DP1..DP3 y destino. Mientras llega el render visual, listamos cada punto con coordenadas para
         imprimir en la carta.
       </p>
+      <p className="mt-1 text-xs font-mono text-olive">{plan.routes.base.intent}</p>
       <div className="mt-3 h-40 bg-[repeating-linear-gradient(45deg,var(--paper-shadow),var(--paper-shadow)_10px,var(--paper-edge)_10px,var(--paper-edge)_20px)] border-2 border-ink rounded-lg p-3 overflow-y-auto">
         <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-olive">Corridor</p>
         <ul className="text-sm space-y-1">

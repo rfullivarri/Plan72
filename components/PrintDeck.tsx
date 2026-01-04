@@ -1,17 +1,11 @@
 "use client";
 
-import { humanizeLevel, humanizeScenario, usePlan } from "./PlanContext";
-
-type CardFace = Record<string, unknown>;
-
-function listFrom(value: unknown): string[] {
-  if (Array.isArray(value)) return value.map(String);
-  if (typeof value === "string") return [value];
-  return [];
-}
+import { humanizeLevel, humanizeScenarioList, usePlan } from "./PlanContext";
 
 export default function PrintDeck() {
   const { input, plan } = usePlan();
+  const primaryCard = plan.scenarioPlans[0]?.card;
+  const scenarioLabel = humanizeScenarioList(input.scenarios);
 
   return (
     <div className="print-deck" aria-hidden>
@@ -25,10 +19,10 @@ export default function PrintDeck() {
           <div>
             <p className="print-kicker">plan72 · protocol</p>
             <h2 className="print-title">
-              {input.city} / {humanizeScenario(input.scenario)} / {input.moment}
+              {input.city} / {scenarioLabel} / {input.moment}
             </h2>
             <p className="print-subtitle">
-              Nivel {humanizeLevel(input.level)} · {plan.mode} corridor
+              Nivel {humanizeLevel(input.level)} · {primaryCard?.mode ?? "MOVE"} corridor
             </p>
           </div>
           <div className="print-badge">
@@ -38,51 +32,46 @@ export default function PrintDeck() {
         </header>
 
         <div className="print-grid">
-          {plan.cards.map((card) => {
-            const doList = listFrom((card.front as CardFace)["do"]);
-            const checkList = listFrom((card.front as CardFace)["check"]);
-            const priorities = listFrom((card.front as CardFace)["priority"]);
+          {plan.scenarioPlans.map(({ card }) => (
+            <article key={card.id} className="print-card">
+              <div className="print-card__chrome">
+                <span className="print-card__stage">{card.scenario}</span>
+                <span className="print-card__code">{card.mode}</span>
+              </div>
+              <h3 className="print-card__title">{card.routeSummary}</h3>
 
-            return (
-              <article key={`${card.id}-${card.stage}`} className="print-card">
-                <div className="print-card__chrome">
-                  <span className="print-card__stage">Stage {card.stage}</span>
-                  <span className="print-card__code">{card.id}</span>
-                </div>
-                <h3 className="print-card__title">{String((card.front as CardFace)["objective"] ?? "Pending objective")}</h3>
-
-                <div className="print-card__columns">
-                  <div className="print-card__block">
-                    <p className="print-label">Do</p>
-                    <ul>
-                      {doList.length > 0 ? (
-                        doList.map((item, idx) => <li key={idx}>{item}</li>)
-                      ) : (
-                        <li>Esperando inputs…</li>
-                      )}
-                    </ul>
-                  </div>
-
-                  <div className="print-card__block">
-                    <p className="print-label">Check</p>
-                    <ul>
-                      {checkList.length > 0 ? (
-                        checkList.map((item, idx) => <li key={idx}>{item}</li>)
-                      ) : (
-                        <li>Enlazar sensores</li>
-                      )}
-                    </ul>
-                  </div>
+              <div className="print-card__columns">
+                <div className="print-card__block">
+                  <p className="print-label">STG0..3</p>
+                  <ul>
+                    {card.stages.map((stage) => (
+                      <li key={stage.stage}>
+                        {stage.stage}: {stage.actions.slice(0, 3).join(" · ")}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
-                <div className="print-meta">
-                  <span className="print-chip">T+ {String((card.front as CardFace)["window"] ?? "00:00")}</span>
-                  <span className="print-chip">Next · {String((card.front as CardFace)["next"] ?? "chain")}</span>
-                  <span className="print-chip">Nodes · {priorities.join(" · ") || "pending"}</span>
+                <div className="print-card__block">
+                  <p className="print-label">Do / Don&apos;t</p>
+                  <ul>
+                    {card.do.map((item, idx) => (
+                      <li key={`do-${idx}`}>{item}</li>
+                    ))}
+                    {card.dont.map((item, idx) => (
+                      <li key={`dont-${idx}`}>× {item}</li>
+                    ))}
+                  </ul>
                 </div>
-              </article>
-            );
-          })}
+              </div>
+
+              <div className="print-meta">
+                <span className="print-chip">MODE · {card.mode}</span>
+                <span className="print-chip">Nodes · {card.resourcePriority.join(" · ")}</span>
+                <span className="print-chip">Resource Nodes · {card.resourceNodes.length}</span>
+              </div>
+            </article>
+          ))}
         </div>
       </div>
     </div>

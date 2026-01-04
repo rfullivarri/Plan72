@@ -1,7 +1,5 @@
 import { cityTemplates } from "./cityTemplates";
-import { Coordinate, PlanInput, PlanOutput, RouteAlternative, ScenarioCode } from "./schema";
-
-type StageKey = "STG0" | "STG1" | "STG2" | "STG3";
+import { Coordinate, PlanInput, PlanOutput, RouteAlternative, ScenarioCode, StageKey } from "./schema";
 
 const CARD_ID_SEPARATOR = "–";
 
@@ -159,19 +157,9 @@ function buildBCNCorridor(input: PlanInput): {
 }
 
 export function generatePlan(input: PlanInput): PlanOutput {
+  const scenarios = input.scenarios.length > 0 ? input.scenarios : (["UNK"] as ScenarioCode[]);
   const stages: StageKey[] = ["STG0", "STG1", "STG2", "STG3"];
-  const stagePlans = stages.map((stage, index) => {
-    const mode = determineMode(input.scenario, input.moment, stage);
-    const actions = buildActions(input.scenario, input.moment, stage, mode);
-    const nextCard = index < stages.length - 1 ? `${input.city}${CARD_ID_SEPARATOR}ACT${CARD_ID_SEPARATOR}${input.scenario}${CARD_ID_SEPARATOR}${input.moment}#${stages[index + 1]}` : undefined;
-    return {
-      stage,
-      actions,
-      nextCard,
-    } as const;
-  });
 
-  const baseMode = determineMode(input.scenario, input.moment, "STG0");
   const bcnRoute = input.city === "BCN" ? buildBCNCorridor(input) : null;
   const fallbackCorridor = buildBaseCorridor(input.start);
 
@@ -179,98 +167,61 @@ export function generatePlan(input: PlanInput): PlanOutput {
   const decisionPoints = bcnRoute?.decisionPoints ?? fallbackCorridor.slice(1, 4);
   const altRoutes = bcnRoute?.alts ?? [];
   const routeIntent = bcnRoute?.intent ?? "Base heuristic corridor";
-
-  const routeCardId = `${input.city}${CARD_ID_SEPARATOR}RTE${CARD_ID_SEPARATOR}BASE`;
-  const actionCardId = `${input.city}${CARD_ID_SEPARATOR}ACT${CARD_ID_SEPARATOR}${input.scenario}${CARD_ID_SEPARATOR}${input.moment}`;
-  const statusCardId = `${input.city}${CARD_ID_SEPARATOR}STS${CARD_ID_SEPARATOR}${input.scenario}${CARD_ID_SEPARATOR}${input.moment}`;
-  const checklistCardId = `${input.city}${CARD_ID_SEPARATOR}CHK`;
-
-  const priorityOrder = resourcePriority[input.scenario][input.moment];
-  const corridorSummary = corridor.map((point) => point.label ?? "").join(" → ");
   const objectiveLabel = corridor[corridor.length - 1]?.label ?? "Objective";
+  const corridorSummary = corridor.map((point) => point.label ?? "").join(" → ");
+
+  const scenarioPlans = scenarios.map((scenario) => {
+    const stagePlans = stages.map((stage) => {
+      const stageMode = determineMode(scenario, input.moment, stage);
+      const stageActions = buildActions(scenario, input.moment, stage, stageMode);
+      return {
+        stage,
+        window: stageWindows[stage],
+        mode: stageMode,
+        actions: stageActions.do.slice(0, 3),
+      } as const;
+    });
+
+    const baseMode = determineMode(scenario, input.moment, "STG0");
+    const actionSet = buildActions(scenario, input.moment, "STG0", baseMode);
+    const priorityOrder = resourcePriority[scenario][input.moment];
+
+    const card = {
+      id: `${input.city}${CARD_ID_SEPARATOR}SCN${CARD_ID_SEPARATOR}${scenario}${CARD_ID_SEPARATOR}${input.moment}`,
+      scenario,
+      label: `${scenario} protocol`,
+      mode: baseMode,
+      routeSummary: corridorSummary,
+      map: {
+        corridor,
+        decisionPoints,
+        alts: altRoutes,
+        intent: routeIntent,
+        objective: objectiveLabel,
+      },
+      stages: stagePlans,
+      do: actionSet.do.slice(0, 3),
+      dont: actionSet.dont.slice(0, 3),
+      resourcePriority: priorityOrder,
+      resourceNodes: input.resourceNodes,
+    };
+
+    return { scenario, card } as const;
+  });
 
   return {
     meta: {
-      id: `${input.city}-${input.scenario}-${input.moment}-${input.level}`,
+      id: `${input.city}-${scenarios.join("+")}-${input.moment}-${input.level}`,
       generatedAt: new Date().toISOString(),
     },
-    mode: baseMode,
-    stages: stagePlans,
     routes: {
       base: {
         corridor,
         decisionPoints,
         alts: altRoutes,
+        intent: routeIntent,
       },
     },
-    cards: [
-      ...stagePlans.map((stagePlan) => ({
-        id: actionCardId,
-        stage: stagePlan.stage,
-        front: {
-          id: actionCardId,
-          stage: stagePlan.stage,
-          mode: determineMode(input.scenario, input.moment, stagePlan.stage),
-          objective: `${stagePlan.stage} protocol for ${input.scenario}`,
-          trigger: `${input.moment} cues acknowledged`,
-          do: stagePlan.actions.do,
-          dont: stagePlan.actions.dont,
-          next: stagePlan.nextCard,
-          window: stageWindows[stagePlan.stage],
-        },
-        back: {
-          stage: stagePlan.stage,
-          mode: determineMode(input.scenario, input.moment, stagePlan.stage),
-          checkpoints: decisionPoints.map((dp) => dp.label),
-          fallback: ["Keep corridor options", "Use permitted Resource Nodes"],
-        },
-      })),
-      {
-        id: routeCardId,
-        stage: "STG1",
-        front: {
-          id: routeCardId,
-          mode: baseMode,
-          corridor: corridor.map((point) => point.label ?? ""),
-          decisionPoints: decisionPoints.map((point, idx) => `${idx + 1}. ${point.label}`),
-          objective: corridorSummary,
-          routeIntent,
-          alts: altRoutes,
-          window: stageWindows["STG1"],
-        },
-        back: {
-          route: corridor,
-          alts: altRoutes,
-          objective: objectiveLabel,
-        },
-      },
-      {
-        id: statusCardId,
-        stage: "STG0",
-        front: {
-          id: statusCardId,
-          priority: priorityOrder,
-          label: "Resource Node priorities",
-          nodes: input.resourceNodes,
-        },
-        back: {
-          reminder: "Use only permitted Resource Nodes",
-          resourceOrder: priorityOrder.join(" → "),
-          nodes: input.resourceNodes,
-        },
-      },
-      {
-        id: checklistCardId,
-        stage: "STG0",
-        front: {
-          id: checklistCardId,
-          checks: ["Water", "Warmth", "Rest", "Comms"],
-          objective: "Quick checklist",
-        },
-        back: {
-          fallback: ["If unsure, pause and reassess", "Keep Resource Nodes visible to team"],
-        },
-      },
-    ],
+    scenarioPlans,
   };
 }

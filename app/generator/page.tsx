@@ -12,8 +12,13 @@ import { useRouter } from "next/navigation";
 
 export default function GeneratorPage() {
   const router = useRouter();
-  const { input, updateInput, updatePreference } = usePlan();
+  const { input, updateInput, updatePreference, lowInkMode, toggleLowInkMode, lastSavedAt } = usePlan();
   const [newNode, setNewNode] = useState({ label: "", lat: "", lng: "", types: "A" });
+
+  const savedLabel = useMemo(() => {
+    if (!lastSavedAt) return "Auto-save pendiente";
+    return new Date(lastSavedAt).toLocaleString();
+  }, [lastSavedAt]);
 
   const handleGenerate = () => {
     router.push("/results");
@@ -62,6 +67,18 @@ export default function GeneratorPage() {
               >
                 Generate → Results
               </button>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs font-mono text-olive">
+              <button
+                type="button"
+                onClick={toggleLowInkMode}
+                className={`rounded-lg border-2 border-ink px-3 py-1 transition ${lowInkMode ? "bg-[rgba(74,90,58,0.14)]" : "bg-[rgba(255,255,255,0.7)]"}`}
+              >
+                Low Ink: {lowInkMode ? "ON" : "OFF"}
+              </button>
+              <span className="rounded-lg border-2 border-dashed border-ink px-3 py-1 bg-[rgba(255,255,255,0.65)]">
+                Perfil guardado: {savedLabel}
+              </span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-1 text-sm font-semibold">

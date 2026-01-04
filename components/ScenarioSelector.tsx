@@ -1,3 +1,7 @@
+"use client";
+
+import { usePlan } from "./PlanContext";
+
 const scenarios = [
   { code: "AIR", label: "Air", detail: "Particulado + gas" },
   { code: "NUK", label: "Nuclear", detail: "Fallout / EMP" },
@@ -7,6 +11,8 @@ const scenarios = [
 ];
 
 export default function ScenarioSelector() {
+  const { input, updateInput } = usePlan();
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -19,20 +25,33 @@ export default function ScenarioSelector() {
         </span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {scenarios.map((scenario) => (
-          <button key={scenario.code} className="card-frame group p-4 text-left transition hover:-translate-y-1">
-            <div className="flex items-center justify-between">
-              <div className="font-mono text-xs text-olive">{scenario.code}</div>
-              <span className="rounded-full border-2 border-ink px-2 py-0.5 text-[10px] font-semibold">
-                {scenario.label}
-              </span>
-            </div>
-            <div className="mt-2 text-sm text-ink/80">{scenario.detail}</div>
-            <div className="mt-3 h-1.5 w-full bg-ink/10">
-              <div className="h-full w-2/3 bg-gradient-to-r from-[var(--olive)] to-[var(--rust)] group-hover:w-full transition-all" />
-            </div>
-          </button>
-        ))}
+        {scenarios.map((scenario) => {
+          const isActive = input.scenario === scenario.code;
+          return (
+            <button
+              key={scenario.code}
+              onClick={() => updateInput("scenario", scenario.code as typeof input.scenario)}
+              className={`card-frame group p-4 text-left transition hover:-translate-y-1 ${
+                isActive ? "border-ink bg-[rgba(179,90,42,0.12)]" : ""
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="font-mono text-xs text-olive">{scenario.code}</div>
+                <span className="rounded-full border-2 border-ink px-2 py-0.5 text-[10px] font-semibold">
+                  {scenario.label}
+                </span>
+              </div>
+              <div className="mt-2 text-sm text-ink/80">{scenario.detail}</div>
+              <div className="mt-3 h-1.5 w-full bg-ink/10">
+                <div
+                  className={`h-full bg-gradient-to-r from-[var(--olive)] to-[var(--rust)] transition-all ${
+                    isActive ? "w-full" : "w-2/3 group-hover:w-full"
+                  }`}
+                />
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

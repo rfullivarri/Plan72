@@ -21,7 +21,7 @@ export default function Home() {
               <Link className="ink-button" href="/generator">
                 Start Generator
               </Link>
-              <Link className="ink-button" href="/generator#how">
+              <Link className="ink-button" href="/how-it-works">
                 How it works
               </Link>
             </div>

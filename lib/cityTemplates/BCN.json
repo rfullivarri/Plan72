@@ -1,0 +1,31 @@
+{
+  "city": "BCN",
+  "label": "Barcelona",
+  "defaults": {
+    "start": { "label": "Forum", "lat": 41.411, "lng": 2.219 },
+    "level": "STANDARD",
+    "peopleCount": 2
+  },
+  "objectives": {
+    "primary": { "label": "Collserola (green high ground)", "lat": 41.418, "lng": 2.107 },
+    "secondary": { "label": "Vallès (metro exit)", "lat": 41.520, "lng": 2.105 }
+  },
+  "decisionPoints": [
+    { "id": "DP1", "label": "Glòries area", "lat": 41.409, "lng": 2.190 },
+    { "id": "DP2", "label": "Francesc Macià area", "lat": 41.393, "lng": 2.145 },
+    { "id": "DP3", "label": "Zona Universitària area", "lat": 41.386, "lng": 2.115 }
+  ],
+  "corridor": {
+    "intent": "NW corridor via Diagonal or parallel streets toward Zona Universitària, then into Collserola",
+    "alts": [
+      { "id": "ALT1", "label": "Interior / fewer arteries" },
+      { "id": "ALT2", "label": "Fastest corridor" }
+    ]
+  },
+  "avoidRules": {
+    "avoidCriticalInfra": true,
+    "avoidTouristClusters": true,
+    "avoidUnderground": true,
+    "avoidAvenues": false
+  }
+}

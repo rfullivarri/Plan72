@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #f3e2c2;
+  --paper-shadow: #e7d2ab;
+  --paper-edge: #c9a773;
+  --ink: #1b1a14;
+  --olive: #4a5a3a;
+  --rust: #b35a2a;
+  --warning: #d9a441;
+  --accent: #8aae3b;
+
+  --font-display: "Bebas Neue";
+  --font-body: "Inter";
+  --font-mono: "IBM Plex Mono";
+}
+
+body {
+  color: var(--ink);
+  background: radial-gradient(circle at 10% 20%, rgba(231, 210, 171, 0.6), transparent 25%),
+    radial-gradient(circle at 90% 10%, rgba(201, 167, 115, 0.35), transparent 25%),
+    var(--paper);
+  font-family: var(--font-body), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.card-frame {
+  @apply border-4 border-ink bg-paper/90 rounded-2xl shadow-lg shadow-[var(--paper-edge)] text-ink;
+}
+
+.ink-button {
+  @apply border-2 border-ink bg-gradient-to-b from-paper to-[var(--paper-shadow)] text-ink px-4 py-2 rounded-lg font-semibold transition-transform duration-150 active:translate-y-0.5 active:shadow-inner;
+}

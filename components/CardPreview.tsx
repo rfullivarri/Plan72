@@ -1,4 +1,13 @@
+"use client";
+
+import { humanizeLevel, humanizeScenario, usePlan } from "./PlanContext";
+
 export default function CardPreview() {
+  const { input, plan } = usePlan();
+  const actionCard = plan.cards.find((card) => card.id.includes("ACT") && card.stage === plan.stages[0]?.stage);
+  const statusCard = plan.cards.find((card) => card.id.includes("STS"));
+  const corridor = plan.routes.base.corridor;
+
   return (
     <div className="relative mx-auto max-w-md">
       <div className="absolute -inset-4 border-4 border-ink rounded-3xl rotate-1 opacity-60"></div>
@@ -8,44 +17,48 @@ export default function CardPreview() {
         <div className="hero-grid" aria-hidden />
         <header className="space-y-1">
           <p className="font-mono text-xs uppercase tracking-[0.3em] text-olive">Protocol draft</p>
-          <h3 className="font-display text-4xl leading-tight">BCN – ACT – NUK</h3>
-          <p className="text-sm text-ink/80">72h compressed playbook for fallout corridor. Keep clipped to the survival pouch.</p>
+          <h3 className="font-display text-4xl leading-tight">
+            {input.city} – {input.scenario} – {input.moment}
+          </h3>
+          <p className="text-sm text-ink/80">Nivel {humanizeLevel(input.level)} · {humanizeScenario(input.scenario)} focus</p>
         </header>
 
         <div className="mt-4 space-y-3">
           <div className="flex items-center justify-between rounded-xl border-2 border-ink/60 bg-[rgba(255,255,255,0.6)] px-4 py-3">
             <div className="flex items-center gap-3">
-              <span className="rounded-full bg-ink px-3 py-1 text-xs font-mono text-paper">STG0</span>
+              <span className="rounded-full bg-ink px-3 py-1 text-xs font-mono text-paper">{actionCard?.stage ?? "STG"}</span>
               <div>
-                <p className="text-xs font-mono text-olive">IMMEDIATE</p>
-                <p className="text-sm font-semibold">Shelter in metro hub / seal vents</p>
+                <p className="text-xs font-mono text-olive">{plan.mode}</p>
+                <p className="text-sm font-semibold">{actionCard?.front["objective"] ?? "Live objective"}</p>
               </div>
             </div>
-            <span className="text-xs font-mono text-ink/70">00:00→03:00</span>
+            <span className="text-xs font-mono text-ink/70">{actionCard?.front["window"] ?? "00:00"}</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="space-y-2 rounded-xl border-2 border-ink/50 bg-[rgba(245,232,204,0.7)] p-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Resources</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Do</p>
               <ul className="list-disc space-y-1 pl-4 text-ink/80">
-                <li>Iodine tablets x6</li>
-                <li>Static map overlay</li>
-                <li>Analog beacon</li>
+                {(actionCard?.front["do"] as string[] | undefined)?.map((item, idx) => (
+                  <li key={idx}>{item}</li>
+                )) || <li>Esperando inputs…</li>}
               </ul>
             </div>
             <div className="space-y-2 rounded-xl border-2 border-ink/50 bg-[rgba(255,255,255,0.7)] p-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Routes</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Corridor</p>
               <div className="space-y-1 text-ink/80">
-                <p>01 · Descend to L2 tunnels</p>
-                <p>02 · Head NW to arc corridor</p>
-                <p>03 · Keep badge visible</p>
+                {corridor.slice(0, 3).map((point, idx) => (
+                  <p key={point.label ?? idx}>
+                    {String(idx + 1).padStart(2, "0")} · {point.label} ({point.lat.toFixed(2)}, {point.lng.toFixed(2)})
+                  </p>
+                ))}
               </div>
             </div>
           </div>
 
           <div className="flex items-center justify-between rounded-xl border-2 border-ink/60 bg-[rgba(255,255,255,0.5)] px-4 py-2 font-mono text-xs uppercase tracking-[0.2em] text-olive">
-            <span>Vigilance · Keep radio silent</span>
-            <span className="text-ink">Scan / mark / seal</span>
+            <span>Nodes: {(statusCard?.front["priority"] as string[] | undefined)?.join(" · ") ?? "Pending"}</span>
+            <span className="text-ink">{actionCard?.front["next"] ?? "Stage linked"}</span>
           </div>
         </div>
 

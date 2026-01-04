@@ -8,6 +8,13 @@ export interface Coordinate {
   label?: string;
 }
 
+export interface RouteAlternative {
+  id: string;
+  label: string;
+  note?: string;
+  path?: Coordinate[];
+}
+
 export interface ResourceNode {
   id: string;
   label: string;
@@ -50,7 +57,7 @@ export interface PlanOutput {
     base: {
       corridor: Coordinate[];
       decisionPoints: Coordinate[];
-      alts: Coordinate[];
+      alts: RouteAlternative[];
     };
   };
   cards: Array<{

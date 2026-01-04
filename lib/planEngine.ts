@@ -1,4 +1,5 @@
-import { Coordinate, PlanInput, PlanOutput, ScenarioCode } from "./schema";
+import { cityTemplates } from "./cityTemplates";
+import { Coordinate, PlanInput, PlanOutput, RouteAlternative, ScenarioCode } from "./schema";
 
 type StageKey = "STG0" | "STG1" | "STG2" | "STG3";
 
@@ -124,6 +125,39 @@ function buildBaseCorridor(start: Coordinate): Coordinate[] {
   ];
 }
 
+function buildBCNCorridor(input: PlanInput): {
+  corridor: Coordinate[];
+  decisionPoints: Coordinate[];
+  alts: RouteAlternative[];
+  intent: string;
+} {
+  const template = cityTemplates["BCN"];
+  const start = {
+    ...template.defaults.start,
+    ...input.start,
+    label: input.start.label || template.defaults.start.label,
+  };
+
+  const decisionPoints = template.decisionPoints.map((dp) => ({
+    lat: dp.lat,
+    lng: dp.lng,
+    label: dp.label,
+  }));
+
+  const primaryObjective = {
+    lat: template.objectives.primary.lat,
+    lng: template.objectives.primary.lng,
+    label: template.objectives.primary.label,
+  } satisfies Coordinate;
+
+  return {
+    corridor: [start, ...decisionPoints, primaryObjective],
+    decisionPoints,
+    alts: template.corridor.alts.map((alt) => ({ id: alt.id, label: alt.label })),
+    intent: template.corridor.intent,
+  };
+}
+
 export function generatePlan(input: PlanInput): PlanOutput {
   const stages: StageKey[] = ["STG0", "STG1", "STG2", "STG3"];
   const stagePlans = stages.map((stage, index) => {
@@ -138,8 +172,13 @@ export function generatePlan(input: PlanInput): PlanOutput {
   });
 
   const baseMode = determineMode(input.scenario, input.moment, "STG0");
-  const corridor = buildBaseCorridor(input.start);
-  const decisionPoints = corridor.slice(1, 4);
+  const bcnRoute = input.city === "BCN" ? buildBCNCorridor(input) : null;
+  const fallbackCorridor = buildBaseCorridor(input.start);
+
+  const corridor = bcnRoute?.corridor ?? fallbackCorridor;
+  const decisionPoints = bcnRoute?.decisionPoints ?? fallbackCorridor.slice(1, 4);
+  const altRoutes = bcnRoute?.alts ?? [];
+  const routeIntent = bcnRoute?.intent ?? "Base heuristic corridor";
 
   const routeCardId = `${input.city}${CARD_ID_SEPARATOR}RTE${CARD_ID_SEPARATOR}BASE`;
   const actionCardId = `${input.city}${CARD_ID_SEPARATOR}ACT${CARD_ID_SEPARATOR}${input.scenario}${CARD_ID_SEPARATOR}${input.moment}`;
@@ -147,6 +186,8 @@ export function generatePlan(input: PlanInput): PlanOutput {
   const checklistCardId = `${input.city}${CARD_ID_SEPARATOR}CHK`;
 
   const priorityOrder = resourcePriority[input.scenario][input.moment];
+  const corridorSummary = corridor.map((point) => point.label ?? "").join(" → ");
+  const objectiveLabel = corridor[corridor.length - 1]?.label ?? "Objective";
 
   return {
     meta: {
@@ -159,7 +200,7 @@ export function generatePlan(input: PlanInput): PlanOutput {
       base: {
         corridor,
         decisionPoints,
-        alts: [],
+        alts: altRoutes,
       },
     },
     cards: [
@@ -192,12 +233,15 @@ export function generatePlan(input: PlanInput): PlanOutput {
           mode: baseMode,
           corridor: corridor.map((point) => point.label ?? ""),
           decisionPoints: decisionPoints.map((point, idx) => `${idx + 1}. ${point.label}`),
-          objective: "Base corridor with Decision Points",
+          objective: corridorSummary,
+          routeIntent,
+          alts: altRoutes,
           window: stageWindows["STG1"],
         },
         back: {
           route: corridor,
-          alts: [],
+          alts: altRoutes,
+          objective: objectiveLabel,
         },
       },
       {

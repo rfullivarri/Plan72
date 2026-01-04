@@ -2,7 +2,7 @@
 
 import { ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
 
-import { defaultCityTemplate } from "@/lib/cityTemplates";
+import { buildPlanInputFromTemplate, defaultCityTemplate } from "@/lib/cityTemplates";
 import { generatePlan } from "@/lib/planEngine";
 import { PlanInput, PlanLevel, PlanOutput, ScenarioCode } from "@/lib/schema";
 
@@ -22,6 +22,7 @@ type PlanContextValue = {
     update: Partial<Omit<PlanInput["resourceNodes"][number], "id">>,
   ) => void;
   removeResourceNode: (id: string) => void;
+  loadCityPreset: (city: string, overrides?: Partial<PlanInput>) => void;
 };
 
 const PlanContext = createContext<PlanContextValue | undefined>(undefined);
@@ -128,6 +129,10 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 
   const toggleLowInkMode = () => setLowInkMode((prev) => !prev);
 
+  const loadCityPreset = (city: string, overrides: Partial<PlanInput> = {}) => {
+    setInput(buildPlanInputFromTemplate(city, overrides));
+  };
+
   const persistProfile = () => {
     const savedAt = new Date().toISOString();
     try {
@@ -152,6 +157,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       addResourceNode,
       updateResourceNode,
       removeResourceNode,
+      loadCityPreset,
     }),
     [input, plan, isRegenerating, lowInkMode, lastSavedAt],
   );

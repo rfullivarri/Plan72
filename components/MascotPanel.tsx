@@ -7,11 +7,21 @@ interface MascotPanelProps {
 }
 
 export default function MascotPanel({ floating }: MascotPanelProps) {
-  const { plan, isRegenerating } = usePlan();
+  const { input, plan, isRegenerating, lowInkMode } = usePlan();
+
+  const moodByScenario: Record<string, { label: string; detail: string; orbClass: string }> = {
+    AIR: { label: "Breezy", detail: "Filtro activo", orbClass: "mascot-orb--air" },
+    NUK: { label: "Shielded", detail: "Sellado", orbClass: "mascot-orb--nuk" },
+    EQK: { label: "Grounded", detail: "Estructuras", orbClass: "mascot-orb--eqk" },
+    UNK: { label: "Curioso", detail: "Observa", orbClass: "mascot-orb--unk" },
+    CIV: { label: "Discreto", detail: "Perfil bajo", orbClass: "mascot-orb--unk" },
+  };
+
+  const mood = moodByScenario[input.scenario] ?? moodByScenario.UNK;
 
   const tip = isRegenerating
     ? "Procesando inputs…"
-    : `Modo ${plan.mode}. ${plan.stages[0]?.actions.do[0] ?? "Listo"}`;
+    : `${mood.detail} · ${plan.mode} · ${plan.stages[0]?.actions.do[0] ?? "Listo"}`;
 
   return (
     <div
@@ -21,7 +31,7 @@ export default function MascotPanel({ floating }: MascotPanelProps) {
     >
       <div className="flex flex-col items-center gap-3">
         <div className="relative h-28 w-28 animate-[float_4s_ease-in-out_infinite]">
-          <div className="mascot-orb relative h-full w-full rounded-full">
+          <div className={`mascot-orb relative h-full w-full rounded-full ${mood.orbClass}`} data-low-ink={lowInkMode}>
             <div className="absolute inset-2 flex items-center justify-center gap-3">
               <div className="mascot-eye">
                 <div className="mascot-eyelid" />
@@ -42,6 +52,9 @@ export default function MascotPanel({ floating }: MascotPanelProps) {
             {isRegenerating ? "Debounce" : "Synced"}
           </span>
           <span className="rounded-md border-2 border-ink px-2 py-1 bg-[rgba(179,90,42,0.1)]">Clock Synced</span>
+          <span className="rounded-md border-2 border-ink px-2 py-1 bg-[rgba(74,90,58,0.1)]">
+            Mood: {mood.label}
+          </span>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, IBM_Plex_Mono, Inter } from "next/font/google";
 import "./globals.css";
+import { PlanProvider } from "@/components/PlanContext";
 
 const display = Bebas_Neue({
   weight: "400",
@@ -35,7 +36,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${display.variable} ${body.variable} ${mono.variable}`}>
       <body className="min-h-screen bg-paper text-ink">
-        <div className="min-h-screen bg-paper text-ink">{children}</div>
+        <PlanProvider>
+          <div className="min-h-screen bg-paper text-ink">{children}</div>
+        </PlanProvider>
       </body>
     </html>
   );

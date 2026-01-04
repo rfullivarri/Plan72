@@ -1,8 +1,18 @@
+"use client";
+
+import { usePlan } from "./PlanContext";
+
 interface MascotPanelProps {
   floating?: boolean;
 }
 
 export default function MascotPanel({ floating }: MascotPanelProps) {
+  const { plan, isRegenerating } = usePlan();
+
+  const tip = isRegenerating
+    ? "Procesando inputs…"
+    : `Modo ${plan.mode}. ${plan.stages[0]?.actions.do[0] ?? "Listo"}`;
+
   return (
     <div
       className={`card-frame max-w-sm p-4 sm:p-5 text-center ${
@@ -25,12 +35,12 @@ export default function MascotPanel({ floating }: MascotPanelProps) {
         </div>
         <div>
           <div className="font-display text-2xl">Atlas the Guide</div>
-          <p className="text-sm text-ink/80">
-            Live tracker & clock. I hover in the corner with TVA punctuality and Fallout optimism.
-          </p>
+          <p className="text-sm text-ink/80">{tip}</p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-olive">
-          <span className="rounded-md border-2 border-ink px-2 py-1 bg-[rgba(255,255,255,0.7)]">Idle · Blink</span>
+          <span className="rounded-md border-2 border-ink px-2 py-1 bg-[rgba(255,255,255,0.7)]">
+            {isRegenerating ? "Debounce" : "Synced"}
+          </span>
           <span className="rounded-md border-2 border-ink px-2 py-1 bg-[rgba(179,90,42,0.1)]">Clock Synced</span>
         </div>
       </div>

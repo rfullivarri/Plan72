@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import L, { type Map as LeafletMap } from "leaflet";
+import type { LayerGroup, Map as LeafletMap } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 import { geocodeAddress, type GeocodeResult } from "@/lib/geocode";
@@ -13,12 +13,13 @@ const iconUrls = {
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 };
 
-L.Icon.Default.mergeOptions(iconUrls);
+type LeafletLib = typeof import("leaflet");
 
 export default function MapCorridor() {
   const { input, plan, updateInput } = usePlan();
+  const [leafletLib, setLeafletLib] = useState<LeafletLib | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
-  const layerRef = useRef<L.LayerGroup | null>(null);
+  const layerRef = useRef<LayerGroup | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [addressQuery, setAddressQuery] = useState("");
   const [geocodeResults, setGeocodeResults] = useState<GeocodeResult[]>([]);
@@ -34,20 +35,32 @@ export default function MapCorridor() {
   }, [input.start.lat, input.start.lng, input.start.label]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (leafletLib || typeof window === "undefined") return;
+
+    const loadLeaflet = async () => {
+      const L = await import("leaflet");
+      L.Icon.Default.mergeOptions(iconUrls);
+      setLeafletLib(L);
+    };
+
+    loadLeaflet();
+  }, [leafletLib]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !leafletLib) return;
     if (mapRef.current || !mapContainerRef.current) return;
 
-    const map = L.map(mapContainerRef.current, {
+    const map = leafletLib.map(mapContainerRef.current, {
       zoomControl: true,
       scrollWheelZoom: true,
       attributionControl: false,
     }).setView([input.start.lat, input.start.lng], 13);
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    leafletLib.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18,
     }).addTo(map);
 
-    const layerGroup = L.layerGroup().addTo(map);
+    const layerGroup = leafletLib.layerGroup().addTo(map);
 
     mapRef.current = map;
     layerRef.current = layerGroup;
@@ -55,10 +68,10 @@ export default function MapCorridor() {
     return () => {
       map.remove();
     };
-  }, [input.start.lat, input.start.lng]);
+  }, [leafletLib, input.start.lat, input.start.lng]);
 
   useEffect(() => {
-    if (!mapRef.current || !layerRef.current) return;
+    if (!leafletLib || !mapRef.current || !layerRef.current) return;
 
     const corridor = plan.routes.base.corridor;
     const coords = corridor.map((point) => [point.lat, point.lng]) as [number, number][];
@@ -73,16 +86,16 @@ export default function MapCorridor() {
     });
 
     coords.forEach((coord, idx) => {
-      const marker = L.marker(coord, { title: labels[idx] });
+      const marker = leafletLib.marker(coord, { title: labels[idx] });
       marker.bindPopup(labels[idx]);
-      marker.addTo(layerRef.current as L.LayerGroup);
+      marker.addTo(layerRef.current as LayerGroup);
     });
 
-    L.polyline(coords, { color: "#1b4332", weight: 4, opacity: 0.8 }).addTo(layerRef.current);
+    leafletLib.polyline(coords, { color: "#1b4332", weight: 4, opacity: 0.8 }).addTo(layerRef.current);
 
-    const bounds = L.latLngBounds(coords);
+    const bounds = leafletLib.latLngBounds(coords);
     mapRef.current.fitBounds(bounds, { padding: [20, 20] });
-  }, [plan.routes.base.corridor]);
+  }, [leafletLib, plan.routes.base.corridor]);
 
   useEffect(() => {
     if (!addressQuery || addressQuery.trim().length < 3) {

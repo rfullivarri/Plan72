@@ -10,6 +10,7 @@ import { MOMENT_CODES, PLAN_LEVELS } from "@/lib/constants";
 import { cityTemplates } from "@/lib/cityTemplates";
 import { PlanInput } from "@/lib/schema";
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function GeneratorPage() {
@@ -21,10 +22,6 @@ export default function GeneratorPage() {
     if (!lastSavedAt) return "Auto-save pendiente";
     return new Date(lastSavedAt).toLocaleString();
   }, [lastSavedAt]);
-
-  const handleGenerate = () => {
-    router.push("/results");
-  };
 
   const handleCityChange = (value: string) => {
     const nextCity = value || "BCN";
@@ -101,13 +98,13 @@ export default function GeneratorPage() {
                 >
                   BCN preset
                 </button>
-                <button
-                  onClick={handleGenerate}
+                <Link
+                  href="/results"
                   className="ink-button flex items-center gap-2"
                   aria-label="Generate protocol and go to results"
                 >
                   Generate → Results
-                </button>
+                </Link>
               </div>
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-mono text-olive">

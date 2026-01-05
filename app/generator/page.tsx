@@ -5,6 +5,7 @@ import MascotPanel from "@/components/MascotPanel";
 import ScenarioSelector from "@/components/ScenarioSelector";
 import StageTimeline from "@/components/StageTimeline";
 import { usePlan } from "@/components/PlanContext";
+import MapCorridor from "@/components/MapCorridor";
 import { MOMENT_CODES, PLAN_LEVELS } from "@/lib/constants";
 import { cityTemplates } from "@/lib/cityTemplates";
 import { PlanInput } from "@/lib/schema";
@@ -224,6 +225,7 @@ export default function GeneratorPage() {
 
         <div className="relative space-y-4 lg:pl-6">
           <CardPreview />
+          <MapCorridor />
           <MascotPanel floating />
         </div>
       </section>

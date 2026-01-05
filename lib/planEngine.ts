@@ -1,16 +1,10 @@
 import { cityTemplates } from "./cityTemplates";
+import { scenarioText, stageWindows } from "./scenarioText";
 import { Coordinate, PlanInput, PlanOutput, RouteAlternative, ScenarioCode, StageKey } from "./schema";
 
 const CARD_ID_SEPARATOR = "–";
 
 type ResourceCode = PlanInput["resourceNodes"][number]["types"][number];
-
-const stageWindows: Record<StageKey, string> = {
-  STG0: "0–60 min",
-  STG1: "1–6 h",
-  STG2: "6–24 h",
-  STG3: "24–72 h",
-};
 
 const resourcePriority = {
   AIR: {
@@ -58,62 +52,8 @@ function determineMode(scenario: ScenarioCode, moment: "PRE" | "POST", stage: St
   return stage === "STG0" || stage === "STG1" ? "SHELTER" : "MOVE";
 }
 
-function buildActions(
-  scenario: ScenarioCode,
-  moment: "PRE" | "POST",
-  stage: StageKey,
-  mode: "MOVE" | "SHELTER",
-) {
-  const actions: Record<ScenarioCode, { do: string[]; dont: string[] }> = {
-    AIR: {
-      do: ["Check cover", "Watch sky cues", "Stay off bridges"],
-      dont: ["Cluster under glass", "Ignore sirens", "Block corridors"],
-    },
-    NUK: {
-      do: ["Seal interior", "Track official guidance", "Prep filtered water"],
-      dont: ["Peek outside", "Rely on lifts", "Rush crowds"],
-    },
-    CIV: {
-      do: ["Pack low-profile", "Use side streets", "Keep comms brief"],
-      dont: ["Display gear", "Join crowds", "Argue at checkpoints"],
-    },
-    EQK: {
-      do: ["Check structure", "Open exits", "Carry sturdy shoes"],
-      dont: ["Use elevators", "Stay near glass", "Ignore aftershocks"],
-    },
-    UNK: {
-      do: ["Limit signals", "Observe quietly", "Map Resource Nodes"],
-      dont: ["Advertise plans", "Travel loud routes", "Stay under billboards"],
-    },
-  };
-
-  const adjustments: Partial<Record<StageKey, { do?: string[]; dont?: string[] }>> = {
-    STG0: {
-      do: [mode === "SHELTER" ? "Secure shelter" : "Start corridor move", "Confirm headcount", "Stage kits"],
-      dont: ["Delay first step", "Overpack", "Split without plan"],
-    },
-    STG1: {
-      do: ["Log Decision Points", "Rotate lookout", "Stay hydrated"],
-      dont: ["Overstay risky spots", "Skip check-ins", "Ignore fatigue"],
-    },
-    STG2: {
-      do: ["Collect priority resources", "Check maps offline", "Plan rest slots"],
-      dont: ["Hug main avenues", "Share exact route", "Drain batteries"],
-    },
-    STG3: {
-      do: ["Stagger movement", "Mark safe nodes", "Review fallback"],
-      dont: ["Camp in open", "Signal from peaks", "Leave gear unsecured"],
-    },
-  };
-
-  const base = actions[scenario];
-  const stageAdj = adjustments[stage] ?? { do: [], dont: [] };
-  const stageDo = stageAdj.do ?? [];
-  const stageDont = stageAdj.dont ?? [];
-  return {
-    do: [...stageDo, ...base.do].slice(0, 3),
-    dont: [...stageDont, ...base.dont].slice(0, 3),
-  };
+function getStageActions(scenario: ScenarioCode, stage: StageKey) {
+  return scenarioText[scenario]?.stages[stage] ?? [];
 }
 
 function buildBaseCorridor(start: Coordinate): Coordinate[] {
@@ -178,17 +118,17 @@ export function generatePlan(input: PlanInput): PlanOutput {
   const scenarioPlans = scenarios.map((scenario) => {
     const stagePlans = stages.map((stage) => {
       const stageMode = determineMode(scenario, input.moment, stage);
-      const stageActions = buildActions(scenario, input.moment, stage, stageMode);
+      const stageActions = getStageActions(scenario, stage);
       return {
         stage,
         window: stageWindows[stage],
         mode: stageMode,
-        actions: stageActions.do.slice(0, 3),
+        actions: stageActions.slice(0, 3),
       } as const;
     });
 
     const baseMode = determineMode(scenario, input.moment, "STG0");
-    const actionSet = buildActions(scenario, input.moment, "STG0", baseMode);
+    const actionSet = scenarioText[scenario];
     const priorityOrder = resourcePriority[scenario][input.moment];
 
     const card = {

@@ -1,8 +1,10 @@
 "use client";
 
+import { ScenarioCode } from "@/lib/schema";
+
 import { usePlan } from "./PlanContext";
 
-const scenarios = [
+const scenarios: { code: ScenarioCode; label: string; detail: string }[] = [
   { code: "AIR", label: "Air", detail: "Particulado + gas" },
   { code: "NUK", label: "Nuclear", detail: "Fallout / EMP" },
   { code: "CIV", label: "Civil", detail: "Disturbios" },
@@ -27,7 +29,7 @@ export default function ScenarioSelector() {
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {scenarios.map((scenario) => {
-          const isActive = input.scenarios.includes(scenario.code as typeof input.scenarios[number]);
+          const isActive = input.scenarios.includes(scenario.code);
           const handleToggle = () => {
             if (isActive) {
               const remaining = input.scenarios.filter((code) => code !== scenario.code);
@@ -35,7 +37,7 @@ export default function ScenarioSelector() {
               return;
             }
 
-            updateInput("scenarios", [...input.scenarios, scenario.code as typeof input.scenarios[number]]);
+            updateInput("scenarios", [...input.scenarios, scenario.code]);
           };
           return (
             <button

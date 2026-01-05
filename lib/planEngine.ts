@@ -3,6 +3,8 @@ import { Coordinate, PlanInput, PlanOutput, RouteAlternative, ScenarioCode, Stag
 
 const CARD_ID_SEPARATOR = "–";
 
+type ResourceCode = PlanInput["resourceNodes"][number]["types"][number];
+
 const stageWindows: Record<StageKey, string> = {
   STG0: "0–60 min",
   STG1: "1–6 h",
@@ -10,7 +12,7 @@ const stageWindows: Record<StageKey, string> = {
   STG3: "24–72 h",
 };
 
-const resourcePriority: Record<ScenarioCode, Record<"PRE" | "POST", string[]>> = {
+const resourcePriority = {
   AIR: {
     PRE: ["D", "A", "C", "B"],
     POST: ["D", "A", "C", "B"],
@@ -31,7 +33,7 @@ const resourcePriority: Record<ScenarioCode, Record<"PRE" | "POST", string[]>> =
     PRE: ["A", "C", "E"],
     POST: ["A", "C", "E"],
   },
-};
+} satisfies Record<ScenarioCode, Record<"PRE" | "POST", ResourceCode[]>>;
 
 function determineMode(scenario: ScenarioCode, moment: "PRE" | "POST", stage: StageKey) {
   if (scenario === "NUK") {

@@ -168,7 +168,10 @@ export function generatePlan(input: PlanInput): PlanOutput {
   const altRoutes = bcnRoute?.alts ?? [];
   const routeIntent = bcnRoute?.intent ?? "Base heuristic corridor";
   const objectiveLabel = corridor[corridor.length - 1]?.label ?? "Objective";
-  const corridorSummary = corridor.map((point) => point.label ?? "").join(" → ");
+  const corridorSummary =
+    input.city === "BCN"
+      ? "Start → DP1 → DP2 → DP3 → Destination"
+      : corridor.map((point) => point.label ?? "").join(" → ");
 
   const scenarioPlans = scenarios.map((scenario) => {
     const stagePlans = stages.map((stage) => {

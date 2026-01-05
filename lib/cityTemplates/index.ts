@@ -1,29 +1,28 @@
-import BCN_TEMPLATE from "./cityTemplates/BCN.json";
-import { PlanInput } from "./schema";
+import BCN_TEMPLATE from "./BCN.json";
+import { PlanInput } from "../schema";
+
+type PlanStart = PlanInput["start"];
+
+type AvoidRuleKey = "avoidCriticalInfra" | "avoidTouristClusters" | "avoidUnderground" | "avoidAvenues";
 
 export type CityTemplate = {
   city: string;
   label: string;
   defaults: {
-    start: PlanInput["start"];
+    start: PlanStart;
     level: PlanInput["level"];
     peopleCount: number;
   };
   objectives: {
-    primary: PlanInput["start"];
-    secondary?: PlanInput["start"];
+    primary: PlanStart;
+    secondary?: PlanStart;
   };
-  decisionPoints: Array<PlanInput["start"] & { id: string }>;
+  decisionPoints: Array<PlanStart & { id: string }>;
   corridor: {
     intent: string;
     alts: Array<{ id: string; label: string }>;
   };
-  avoidRules?: {
-    avoidCriticalInfra?: boolean;
-    avoidTouristClusters?: boolean;
-    avoidUnderground?: boolean;
-    avoidAvenues?: boolean;
-  };
+  avoidRules?: Partial<Record<AvoidRuleKey, boolean>>;
 };
 
 const BCN = BCN_TEMPLATE as CityTemplate;

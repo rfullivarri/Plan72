@@ -8,7 +8,7 @@
   },
   "objectives": {
     "primary": { "label": "Collserola (green high ground)", "lat": 41.418, "lng": 2.107 },
-    "secondary": { "label": "Vallès (metro exit)", "lat": 41.520, "lng": 2.105 }
+    "secondary": { "label": "Vallès (secondary)", "lat": 41.520, "lng": 2.105 }
   },
   "decisionPoints": [
     { "id": "DP1", "label": "Glòries area", "lat": 41.409, "lng": 2.190 },

@@ -2,48 +2,42 @@
 
 import { useEffect, useState } from "react";
 
-const sizes = [
-  { code: "A6", label: "A6 · 105 x 148 mm", margin: "6mm" },
-  { code: "A7", label: "A7 · 74 x 105 mm", margin: "5mm" },
-] as const;
+import { usePlan } from "./PlanContext";
+import { exportPlanAsPdf } from "@/lib/pdf/export";
+
+type PrintSize = {
+  code: "A6" | "A7";
+  label: string;
+};
+
+const sizes: PrintSize[] = [
+  { code: "A6", label: "A6 · 105 x 148 mm" },
+  { code: "A7", label: "A7 · 74 x 105 mm" },
+];
 
 export default function PdfExportButton() {
+  const { plan, input } = usePlan();
   const [isOpen, setIsOpen] = useState(false);
-  const [printSize, setPrintSize] = useState<(typeof sizes)[number] | null>(null);
-
-  useEffect(() => {
-    const handleAfterPrint = () => setPrintSize(null);
-    window.addEventListener("afterprint", handleAfterPrint);
-    return () => window.removeEventListener("afterprint", handleAfterPrint);
-  }, []);
+  const [printSize, setPrintSize] = useState<PrintSize | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     if (!printSize) return;
+    if (typeof window === "undefined") return;
 
-    document.body.setAttribute("data-print-size", printSize.code);
-    const timer = setTimeout(() => {
-      window.print();
-    }, 200);
+    setIsGenerating(true);
+    exportPlanAsPdf({ plan, input, size: printSize.code });
 
-    return () => {
-      clearTimeout(timer);
-      document.body.removeAttribute("data-print-size");
-    };
-  }, [printSize]);
+    const finishHandle = setTimeout(() => {
+      setIsGenerating(false);
+      setPrintSize(null);
+    }, 600);
+
+    return () => clearTimeout(finishHandle);
+  }, [input, plan, printSize]);
 
   return (
     <div className="relative inline-block">
-      {printSize && (
-        <style>{`
-          @media print {
-            @page {
-              size: ${printSize.code};
-              margin: ${printSize.margin};
-            }
-          }
-        `}</style>
-      )}
-
       <button
         className="ink-button inline-flex items-center gap-2"
         onClick={() => setIsOpen((prev) => !prev)}
@@ -53,7 +47,7 @@ export default function PdfExportButton() {
         <span role="img" aria-label="pdf">
           🗎
         </span>
-        Export PDF
+        {isGenerating ? "Preparing PDF" : "Export PDF"}
       </button>
 
       {isOpen && (
@@ -74,7 +68,7 @@ export default function PdfExportButton() {
                   <div className="mt-0.5 h-3 w-3 rounded-sm border-2 border-ink bg-[rgba(27,26,20,0.08)]" />
                   <div>
                     <p className="font-semibold leading-tight">{size.label}</p>
-                    <p className="text-xs text-ink/70">Márgenes y guías de corte activadas</p>
+                    <p className="text-xs text-ink/70">Una página por escenario con guía de ruta + cortes</p>
                   </div>
                 </button>
               </li>

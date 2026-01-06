@@ -2,6 +2,9 @@ export type GeocodeResult = {
   lat: number;
   lng: number;
   displayName: string;
+  boundingBox?: [number, number, number, number];
+  type?: string;
+  addresstype?: string;
 };
 
 const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
@@ -47,13 +50,36 @@ export async function geocodeAddress(query: string): Promise<GeocodeResult[]> {
     lat: string;
     lon: string;
     display_name: string;
+    boundingbox?: [string, string, string, string];
+    type?: string;
+    addresstype?: string;
   }>;
 
   lastRequestAt = Date.now();
 
-  return payload.map((hit) => ({
-    lat: parseFloat(hit.lat),
-    lng: parseFloat(hit.lon),
-    displayName: hit.display_name,
-  }));
+  return payload.map((hit) => {
+    const boundingBox = hit.boundingbox
+      ? [
+          parseFloat(hit.boundingbox[0]),
+          parseFloat(hit.boundingbox[1]),
+          parseFloat(hit.boundingbox[2]),
+          parseFloat(hit.boundingbox[3]),
+        ]
+      : undefined;
+
+    return {
+      lat: parseFloat(hit.lat),
+      lng: parseFloat(hit.lon),
+      displayName: hit.display_name,
+      boundingBox,
+      type: hit.type,
+      addresstype: hit.addresstype,
+    } satisfies GeocodeResult;
+  });
+}
+
+export async function geocodePlace(query: string): Promise<GeocodeResult | null> {
+  const results = await geocodeAddress(query);
+  if (results.length === 0) return null;
+  return results[0];
 }

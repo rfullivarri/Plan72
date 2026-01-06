@@ -94,7 +94,11 @@ export default function MapCorridor() {
     leafletLib.polyline(coords, { color: "#1b4332", weight: 4, opacity: 0.8 }).addTo(layerRef.current);
 
     const bounds = leafletLib.latLngBounds(coords);
-    mapRef.current.fitBounds(bounds, { padding: [20, 20] });
+    try {
+      mapRef.current.fitBounds(bounds, { padding: [20, 20] });
+    } catch (error) {
+      console.warn("Leaflet fitBounds failed", error);
+    }
   }, [leafletLib, plan.routes.base.corridor]);
 
   useEffect(() => {

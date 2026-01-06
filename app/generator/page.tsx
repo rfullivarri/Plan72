@@ -6,6 +6,7 @@ import ScenarioSelector from "@/components/ScenarioSelector";
 import StageTimeline from "@/components/StageTimeline";
 import { usePlan } from "@/components/PlanContext";
 import MapCorridor from "@/components/MapCorridor";
+import RealMap from "@/components/RealMap";
 import { MOMENT_CODES, PLAN_LEVELS } from "@/lib/constants";
 import { cityTemplates } from "@/lib/cityTemplates";
 import { PlanInput } from "@/lib/schema";
@@ -83,6 +84,8 @@ export default function GeneratorPage() {
 
       <section className="grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
         <div className="space-y-5">
+          <RealMap />
+
           <div className="card-frame p-5 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
@@ -128,6 +131,7 @@ export default function GeneratorPage() {
                   value={input.city}
                   onChange={(e) => handleCityChange(e.target.value)}
                 />
+                <p className="text-xs text-ink/70">Prefilled desde el mapa real.</p>
               </label>
               <label className="space-y-1 text-sm font-semibold">
                 Nivel
@@ -196,6 +200,7 @@ export default function GeneratorPage() {
                   />
                 </label>
               </div>
+              <p className="text-xs text-ink/70">Se actualiza al centrar el mapa; puedes ajustar manualmente.</p>
             </div>
             <div className="rounded-xl border-2 border-dashed border-ink/40 p-3">
               <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-olive">Preferences</p>

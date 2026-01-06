@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { LatLngBoundsExpression, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
+import type { LatLngBoundsExpression, LayerGroup, Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 import { geocodePlace, type GeocodeResult } from "@/lib/geocode";
 import { generateMockRoute, type MockRouteResult } from "@/lib/mockRoute";
 import { usePlan } from "./PlanContext";
+import ResourceNodesOverlay from "./ResourceNodesOverlay";
 
 type LeafletLib = typeof import("leaflet");
 
@@ -25,6 +26,7 @@ export default function RealMap() {
   const mapRef = useRef<LeafletMap | null>(null);
   const markerRef = useRef<LeafletMarker | null>(null);
   const routeLayerRef = useRef<import("leaflet").LayerGroup | null>(null);
+  const resourceLayerRef = useRef<LayerGroup | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState(() => (input.city && input.city !== "BCN" ? input.city : "Barcelona"));
   const [status, setStatus] = useState<string | null>("Mapa listo para buscar.");
@@ -64,6 +66,7 @@ export default function RealMap() {
     }).addTo(map);
 
     routeLayerRef.current = leafletLib.layerGroup().addTo(map);
+    resourceLayerRef.current = leafletLib.layerGroup().addTo(map);
 
     mapRef.current = map;
 
@@ -351,6 +354,14 @@ export default function RealMap() {
             ))}
           </ul>
         </div>
+
+        <ResourceNodesOverlay
+          leafletLib={leafletLib}
+          mapRef={mapRef}
+          layerRef={resourceLayerRef}
+          start={input.start}
+          routePreview={routePreview}
+        />
       </div>
     </div>
   );

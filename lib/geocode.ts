@@ -58,14 +58,15 @@ export async function geocodeAddress(query: string): Promise<GeocodeResult[]> {
   lastRequestAt = Date.now();
 
   return payload.map((hit) => {
-    const boundingBox = hit.boundingbox
-      ? [
-          parseFloat(hit.boundingbox[0]),
-          parseFloat(hit.boundingbox[1]),
-          parseFloat(hit.boundingbox[2]),
-          parseFloat(hit.boundingbox[3]),
-        ]
-      : undefined;
+    const boundingBox: GeocodeResult["boundingBox"] =
+      hit.boundingbox?.length === 4
+        ? ([
+            parseFloat(hit.boundingbox[0]),
+            parseFloat(hit.boundingbox[1]),
+            parseFloat(hit.boundingbox[2]),
+            parseFloat(hit.boundingbox[3]),
+          ] as const)
+        : undefined;
 
     return {
       lat: parseFloat(hit.lat),

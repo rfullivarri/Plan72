@@ -7,6 +7,7 @@ import StageTimeline from "@/components/StageTimeline";
 import { usePlan } from "@/components/PlanContext";
 import MapCorridor from "@/components/MapCorridor";
 import RealMap from "@/components/RealMap";
+import ProtocolCard from "@/components/ProtocolCard";
 import { MOMENT_CODES, PLAN_LEVELS } from "@/lib/constants";
 import { cityTemplates } from "@/lib/cityTemplates";
 import { PlanInput } from "@/lib/schema";
@@ -228,6 +229,24 @@ export default function GeneratorPage() {
         <div className="relative space-y-4 lg:pl-6">
           <CardPreview />
           <MapCorridor />
+          <div className="card-frame space-y-3 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Tarjetas de protocolo</p>
+                <h3 className="font-display text-2xl leading-tight">Ruta + STG0..3 por escenario</h3>
+                <p className="text-sm text-ink/70">Una carta exacta por catástrofe seleccionada (AIR, NUK, CIV, EQK, UNK).</p>
+              </div>
+              <div className="rounded-full border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-1 text-xs font-mono uppercase tracking-[0.2em]">
+                {input.scenarios.length} cartas
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              {input.scenarios.map((scenario) => (
+                <ProtocolCard key={`${scenario}-${input.moment}`} scenario={scenario} />
+              ))}
+            </div>
+          </div>
           <MascotPanel floating />
         </div>
       </section>

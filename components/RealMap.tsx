@@ -177,7 +177,6 @@ export default function RealMap() {
         color: idx === 0 ? "#d9480f" : idx === coords.length - 1 ? "#1d4ed8" : "#3b5bdb",
         fillColor: "white",
         fillOpacity: 0.9,
-        title: label,
       });
       marker.bindTooltip(label, { permanent: false, direction: "top" });
       marker.addTo(routeLayerRef.current as import("leaflet").LayerGroup);

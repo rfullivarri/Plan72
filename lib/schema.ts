@@ -16,12 +16,14 @@ export interface RouteAlternative {
   path?: Coordinate[];
 }
 
+export type ResourceType = "A" | "B" | "C" | "D" | "E" | "F";
+
 export interface ResourceNode {
   id: string;
   label: string;
   lat: number;
   lng: number;
-  types: Array<"A" | "B" | "C" | "D" | "E" | "F">;
+  types: ResourceType[];
 }
 
 export interface PlanInput {
@@ -53,6 +55,20 @@ export interface ScenarioCard {
   scenario: ScenarioCode;
   label: string;
   mode: "MOVE" | "SHELTER";
+  routeId: string;
+  routeSummary: string;
+  nodeSetId: string;
+  nodeSummary: string;
+  stages: StagePlan[];
+  do: string[];
+  dont: string[];
+  resourcePriority: ResourceType[];
+}
+
+export interface MapCard {
+  id: string;
+  routeId: string;
+  nodeSetId: string;
   routeSummary: string;
   map: {
     corridor: Coordinate[];
@@ -61,11 +77,12 @@ export interface ScenarioCard {
     intent: string;
     objective: string;
   };
-  stages: StagePlan[];
-  do: string[];
-  dont: string[];
-  resourcePriority: Array<"A" | "B" | "C" | "D" | "E" | "F">;
+  decisionPoints: Coordinate[];
   resourceNodes: ResourceNode[];
+  resourceLegend: Array<{
+    type: ResourceType;
+    label: string;
+  }>;
 }
 
 export interface PlanOutput {
@@ -73,16 +90,6 @@ export interface PlanOutput {
     id: string;
     generatedAt: string;
   };
-  routes: {
-    base: {
-      corridor: Coordinate[];
-      decisionPoints: Coordinate[];
-      alts: RouteAlternative[];
-      intent: string;
-    };
-  };
-  scenarioPlans: Array<{
-    scenario: ScenarioCode;
-    card: ScenarioCard;
-  }>;
+  mapCard: MapCard;
+  scenarioCards: ScenarioCard[];
 }

@@ -9,7 +9,7 @@ interface MascotPanelProps {
 export default function MascotPanel({ floating }: MascotPanelProps) {
   const { input, plan, isRegenerating, lowInkMode } = usePlan();
   const primaryScenario = input.scenarios[0] ?? "UNK";
-  const primaryCard = plan.scenarioPlans[0]?.card;
+  const primaryCard = plan.scenarioCards[0];
 
   const moodByScenario: Record<string, { label: string; detail: string; orbClass: string }> = {
     AIR: { label: "Breezy", detail: "Filtro activo", orbClass: "mascot-orb--air" },

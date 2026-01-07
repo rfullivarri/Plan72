@@ -296,8 +296,8 @@ export default function MapCorridor({
   }, []);
 
   const corridorSummary = useMemo(
-    () => plan.routes.base.corridor.map((point) => point.label ?? "").join(" → "),
-    [plan.routes.base.corridor],
+    () => mapCard.map.corridor.map((point) => point.label ?? "").join(" → "),
+    [mapCard.map.corridor],
   );
 
   return (
@@ -309,7 +309,7 @@ export default function MapCorridor({
             <p className="text-sm text-ink/80">{description}</p>
           </div>
           <span className="rounded-full border-2 border-ink px-3 py-1 text-xs font-mono uppercase text-olive">
-            {plan.routes.base.intent}
+            {mapCard.map.intent}
           </span>
         </div>
       )}

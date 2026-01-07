@@ -1,10 +1,10 @@
 import { cityTemplates } from "./cityTemplates";
 import { scenarioText, stageWindows } from "./scenarioText";
-import { Coordinate, PlanInput, PlanOutput, RouteAlternative, ScenarioCode, StageKey } from "./schema";
+import { Coordinate, PlanInput, PlanOutput, ResourceType, RouteAlternative, ScenarioCode, StageKey } from "./schema";
 
 const CARD_ID_SEPARATOR = "–";
 
-type ResourceCode = PlanInput["resourceNodes"][number]["types"][number];
+type ResourceCode = ResourceType;
 
 const resourcePriority = {
   AIR: {
@@ -28,6 +28,15 @@ const resourcePriority = {
     POST: ["A", "C", "E"],
   },
 } satisfies Record<ScenarioCode, Record<"PRE" | "POST", ResourceCode[]>>;
+
+const resourceLegendLabels: Record<ResourceCode, string> = {
+  A: "Water",
+  B: "Power",
+  C: "Medical",
+  D: "Shelter",
+  E: "Comms",
+  F: "Transit",
+};
 
 function determineMode(scenario: ScenarioCode, moment: "PRE" | "POST", stage: StageKey) {
   if (scenario === "NUK") {
@@ -114,8 +123,15 @@ export function generatePlan(input: PlanInput): PlanOutput {
     input.city === "BCN"
       ? "Start → DP1 → DP2 → DP3 → Destination"
       : corridor.map((point) => point.label ?? "").join(" → ");
+  const routeId = `${input.city}-${input.moment}-R1`;
+  const nodeSetId = `${input.city}-${input.moment}-N1`;
+  const availableResourceTypes = Array.from(
+    new Set(input.resourceNodes.flatMap((node) => node.types)),
+  ) as ResourceCode[];
+  const legendTypes =
+    availableResourceTypes.length > 0 ? availableResourceTypes : (["A", "B", "C", "D", "E", "F"] as ResourceCode[]);
 
-  const scenarioPlans = scenarios.map((scenario) => {
+  const scenarioCards = scenarios.map((scenario) => {
     const stagePlans = stages.map((stage) => {
       const stageMode = determineMode(scenario, input.moment, stage);
       const stageActions = getStageActions(scenario, stage);
@@ -130,12 +146,38 @@ export function generatePlan(input: PlanInput): PlanOutput {
     const baseMode = determineMode(scenario, input.moment, "STG0");
     const actionSet = scenarioText[scenario];
     const priorityOrder = resourcePriority[scenario][input.moment];
+    const nodeSummary =
+      input.resourceNodes.length > 0
+        ? `${input.resourceNodes.length} nodes · Priority ${priorityOrder.join(" · ")}`
+        : `No nodes · Priority ${priorityOrder.join(" · ")}`;
 
     const card = {
       id: `${input.city}${CARD_ID_SEPARATOR}SCN${CARD_ID_SEPARATOR}${scenario}${CARD_ID_SEPARATOR}${input.moment}`,
       scenario,
       label: `${scenario} protocol`,
       mode: baseMode,
+      routeId,
+      routeSummary: corridorSummary,
+      nodeSetId,
+      nodeSummary,
+      stages: stagePlans,
+      do: actionSet.do.slice(0, 3),
+      dont: actionSet.dont.slice(0, 3),
+      resourcePriority: priorityOrder,
+    };
+
+    return card;
+  });
+
+  return {
+    meta: {
+      id: `${input.city}-${scenarios.join("+")}-${input.moment}-${input.level}`,
+      generatedAt: new Date().toISOString(),
+    },
+    mapCard: {
+      id: `${input.city}${CARD_ID_SEPARATOR}MAP${CARD_ID_SEPARATOR}${input.moment}`,
+      routeId,
+      nodeSetId,
       routeSummary: corridorSummary,
       map: {
         corridor,
@@ -144,29 +186,10 @@ export function generatePlan(input: PlanInput): PlanOutput {
         intent: routeIntent,
         objective: objectiveLabel,
       },
-      stages: stagePlans,
-      do: actionSet.do.slice(0, 3),
-      dont: actionSet.dont.slice(0, 3),
-      resourcePriority: priorityOrder,
+      decisionPoints,
       resourceNodes: input.resourceNodes,
-    };
-
-    return { scenario, card } as const;
-  });
-
-  return {
-    meta: {
-      id: `${input.city}-${scenarios.join("+")}-${input.moment}-${input.level}`,
-      generatedAt: new Date().toISOString(),
+      resourceLegend: legendTypes.map((type) => ({ type, label: resourceLegendLabels[type] })),
     },
-    routes: {
-      base: {
-        corridor,
-        decisionPoints,
-        alts: altRoutes,
-        intent: routeIntent,
-      },
-    },
-    scenarioPlans,
+    scenarioCards,
   };
 }

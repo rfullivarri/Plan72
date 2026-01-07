@@ -20,6 +20,8 @@ export default function GeneratorPage() {
   const [lngInput, setLngInput] = useState(input.start.lng.toString());
   const [labelInput, setLabelInput] = useState(input.start.label ?? "");
   const [activeStep, setActiveStep] = useState(1);
+  const [hasResolvedLocation, setHasResolvedLocation] = useState(false);
+  const [resolvedCenter, setResolvedCenter] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     setLatInput(input.start.lat.toString());
@@ -66,6 +68,8 @@ export default function GeneratorPage() {
     setLatInput(selected.lat.toString());
     setLngInput(selected.lng.toString());
     setLabelInput(label);
+    setResolvedCenter({ lat: selected.lat, lng: selected.lng });
+    setHasResolvedLocation(true);
     setLocationStatus("Ubicación aplicada.");
   };
 
@@ -102,10 +106,12 @@ export default function GeneratorPage() {
     const label = labelInput.trim() || input.start.label || "Start";
     updateInput("start", { lat, lng, label });
     updateInput("city", label);
+    setResolvedCenter({ lat, lng });
+    setHasResolvedLocation(true);
     setLocationStatus("Coordenadas aplicadas.");
   };
 
-  const showGlobe = activeStep <= 2;
+  const showGlobe = !hasResolvedLocation && activeStep <= 2;
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10 space-y-8">
@@ -350,11 +356,28 @@ export default function GeneratorPage() {
                 {showGlobe ? "Vista global para país y ciudad." : "Vista de ruta para dirección y escenarios."}
               </p>
             </div>
-            {showGlobe ? (
-              <Globe3D />
-            ) : (
-              <MapCorridor embedded showHeader={false} showSummary={false} />
-            )}
+            <div className="relative h-64 w-full overflow-hidden">
+              <div
+                className={`absolute inset-0 origin-center transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
+                  showGlobe ? "opacity-100 scale-100" : "pointer-events-none opacity-0 scale-90"
+                }`}
+              >
+                <Globe3D />
+              </div>
+              <div
+                className={`absolute inset-0 origin-center transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
+                  showGlobe ? "pointer-events-none opacity-0 scale-110" : "opacity-100 scale-100"
+                }`}
+              >
+                <MapCorridor
+                  embedded
+                  showHeader={false}
+                  showSummary={false}
+                  initialCenter={resolvedCenter ?? undefined}
+                  initialZoom={13}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>

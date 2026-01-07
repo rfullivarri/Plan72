@@ -2,12 +2,21 @@
 
 import CardStack from "@/components/CardStack";
 import Globe3D from "@/components/Globe3D";
-import MapCorridor from "@/components/MapCorridor";
 import MascotPanel from "@/components/MascotPanel";
 import PdfExportButton from "@/components/PdfExportButton";
 import PrintDeck from "@/components/PrintDeck";
 import { usePlan } from "@/components/PlanContext";
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
+
+const MapCorridor = dynamic(() => import("@/components/MapCorridor"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-64 w-full items-center justify-center rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)] text-xs font-mono text-olive">
+      Loading map…
+    </div>
+  ),
+});
 
 export default function ResultsPage() {
   const { persistProfile, lastSavedAt, lowInkMode, toggleLowInkMode, input, plan } = usePlan();

@@ -52,7 +52,7 @@ export default function MapCorridor({
     };
 
     loadLeaflet();
-  }, [leafletLib]);
+  }, [initialCenter?.lat, initialCenter?.lng, initialZoom, leafletLib]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !leafletLib) return;
@@ -79,7 +79,7 @@ export default function MapCorridor({
     return () => {
       map.remove();
     };
-  }, [leafletLib]);
+  }, [initialCenter?.lat, initialCenter?.lng, initialZoom, leafletLib]);
 
   useEffect(() => {
     if (!leafletLib || !mapRef.current || !layerRef.current) return;

@@ -140,6 +140,7 @@ export default function MapCorridor({
   const corridor = mapCard.map.corridor;
   const [maplibre, setMaplibre] = useState<MapLibreModule | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<MapLibreMarker[]>([]);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -149,62 +150,74 @@ export default function MapCorridor({
 
     loadMapLibre()
       .then((lib) => setMaplibre(lib))
-      .catch((error) => console.warn("MapLibre failed to load", error));
+      .catch((error) => {
+        console.warn("MapLibre failed to load", error);
+        setMapError("No se pudo cargar el mapa.");
+      });
   }, [maplibre]);
 
   useEffect(() => {
-    if (!maplibre || !mapContainerRef.current || mapRef.current) return;
+    if (!maplibre || !mapContainerRef.current || mapRef.current || mapError) return;
 
     const startingLat = initialCenter?.lat ?? 41.39;
     const startingLng = initialCenter?.lng ?? 2.16;
 
-    const map = new maplibre.Map({
-      container: mapContainerRef.current,
-      style: MAPLIBRE_STYLE,
-      center: [startingLng, startingLat],
-      zoom: initialZoom,
-      attributionControl: false,
-    });
+    let map: MapLibreMap | null = null;
 
-    map.addControl(new maplibre.NavigationControl({ showCompass: false }), "bottom-right");
-
-    map.on("load", () => {
-      if (!map.getSource(ROUTE_SOURCE_ID)) {
-        map.addSource(ROUTE_SOURCE_ID, {
-          type: "geojson",
-          data: emptyFeatureCollection,
-        });
-      }
-
-      map.addLayer({
-        id: ROUTE_LAYER_ID,
-        type: "line",
-        source: ROUTE_SOURCE_ID,
-        layout: {
-          "line-join": "round",
-          "line-cap": "round",
-        },
-        paint: {
-          "line-color": "#1b4332",
-          "line-width": 4,
-          "line-opacity": 0.8,
-        },
+    try {
+      map = new maplibre.Map({
+        container: mapContainerRef.current,
+        style: MAPLIBRE_STYLE,
+        center: [startingLng, startingLat],
+        zoom: initialZoom,
+        attributionControl: false,
       });
 
-      setMapReady(true);
-    });
+      map.addControl(new maplibre.NavigationControl({ showCompass: false }), "bottom-right");
 
-    mapRef.current = map;
+      map.on("load", () => {
+        if (!map?.getSource(ROUTE_SOURCE_ID)) {
+          map?.addSource(ROUTE_SOURCE_ID, {
+            type: "geojson",
+            data: emptyFeatureCollection,
+          });
+        }
+
+        map?.addLayer({
+          id: ROUTE_LAYER_ID,
+          type: "line",
+          source: ROUTE_SOURCE_ID,
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": "#1b4332",
+            "line-width": 4,
+            "line-opacity": 0.8,
+          },
+        });
+
+        setMapReady(true);
+      });
+
+      mapRef.current = map;
+    } catch (error) {
+      console.warn("MapLibre failed to initialize", error);
+      map?.remove();
+      mapRef.current = null;
+      setMapError("El mapa no está disponible en este dispositivo.");
+    }
 
     return () => {
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
-      map.remove();
+      map?.remove();
     };
-  }, [maplibre, initialCenter, initialZoom]);
+  }, [maplibre, initialCenter, initialZoom, mapError]);
 
   useEffect(() => {
-    if (!maplibre || !mapRef.current || !mapReady) return;
+    if (!maplibre || !mapRef.current || !mapReady || mapError) return;
 
     const map = mapRef.current;
     const coords = corridor.map((point) => [point.lng, point.lat]) as [number, number][];
@@ -286,7 +299,7 @@ export default function MapCorridor({
     const bounds = new maplibre.LngLatBounds(coords[0], coords[0]);
     coords.slice(1).forEach((coord) => bounds.extend(coord));
     map.fitBounds(bounds, { padding: 20, duration: 0 });
-  }, [maplibre, mapReady, corridor, input.resourceNodes, showResourceNodes, initialCenter, initialZoom]);
+  }, [maplibre, mapReady, mapError, corridor, input.resourceNodes, showResourceNodes, initialCenter, initialZoom]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -300,6 +313,43 @@ export default function MapCorridor({
     () => corridor.map((point) => point.label ?? "").join(" → "),
     [corridor],
   );
+
+  if (mapError) {
+    return (
+      <div className={`${embedded ? "space-y-3" : "card-frame p-4 space-y-3"} ${className ?? ""}`.trim()}>
+        {showHeader && (
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="font-display text-xl">{title}</div>
+              <p className="text-sm text-ink/80">{description}</p>
+            </div>
+            <span className="rounded-full border-2 border-ink px-3 py-1 text-xs font-mono uppercase text-olive">
+              {mapCard.map.intent}
+            </span>
+          </div>
+        )}
+
+        <div className="flex h-64 w-full items-center justify-center rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.7)] text-center text-sm text-ink/70">
+          {mapError}
+        </div>
+
+        {showSummary && (
+          <div className="rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.7)] p-3 text-sm">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Corridor</p>
+            <p className="font-semibold">{corridorSummary}</p>
+            <ul className="mt-2 space-y-1 text-[13px]">
+              {corridor.map((point, idx) => (
+                <li key={point.label ?? idx}>
+                  {String(idx + 1).padStart(2, "0")}. {point.label ?? `DP${idx}`} — {point.lat.toFixed(3)}, {" "}
+                  {point.lng.toFixed(3)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`${embedded ? "space-y-3" : "card-frame p-4 space-y-3"} ${className ?? ""}`.trim()}>

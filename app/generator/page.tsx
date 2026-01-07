@@ -1,6 +1,5 @@
 "use client";
 
-import MapCorridor from "@/components/MapCorridor";
 import ScenarioSelector from "@/components/ScenarioSelector";
 import { usePlan } from "@/components/PlanContext";
 import { MOMENT_CODES, PLAN_LEVELS } from "@/lib/constants";
@@ -16,6 +15,15 @@ const Globe3D = dynamic(() => import("@/components/Globe3D"), {
   loading: () => (
     <div className="flex h-64 w-full items-center justify-center rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)] text-xs font-mono text-olive">
       Loading globe…
+    </div>
+  ),
+});
+
+const MapCorridor = dynamic(() => import("@/components/MapCorridor"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-64 w-full items-center justify-center rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)] text-xs font-mono text-olive">
+      Loading map…
     </div>
   ),
 });

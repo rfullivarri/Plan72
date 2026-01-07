@@ -21,8 +21,8 @@ type ExportOptions = {
   size: PrintSizeCode;
 };
 
-type CorridorPoint = PlanOutput["routes"]["base"]["corridor"][number];
-type MapData = PlanOutput["scenarioPlans"][number]["card"]["map"];
+type CorridorPoint = PlanOutput["mapCard"]["map"]["corridor"][number];
+type MapData = PlanOutput["mapCard"]["map"];
 
 function buildStyleTag(size: SizeConfig) {
   const style = document.createElement("style");
@@ -393,7 +393,7 @@ function createMapPanel(map: MapData, title: string, resourceNodes: number) {
   return mapPanel;
 }
 
-function createStageList(stages: PlanOutput["scenarioPlans"][number]["card"]["stages"]) {
+function createStageList(stages: PlanOutput["scenarioCards"][number]["stages"]) {
   const list = document.createElement("ul");
   list.className = "pdf-stages";
   stages.forEach((stage) => {
@@ -445,20 +445,18 @@ function createMapCardPage(plan: PlanOutput, input: PlanInput, size: SizeConfig)
   const body = document.createElement("div");
   body.className = "pdf-map-stack";
 
-  const mapCards = plan.scenarioPlans.slice(0, 2).map((scenarioPlan) => ({
-    title: `${humanizeScenario(scenarioPlan.scenario)} corridor`,
-    map: scenarioPlan.card.map,
-    resourceNodes: scenarioPlan.card.resourceNodes.length,
-  }));
-
-  mapCards.forEach((mapCard) => {
-    body.appendChild(createMapPanel(mapCard.map, mapCard.title, mapCard.resourceNodes));
-  });
+  body.appendChild(
+    createMapPanel(
+      plan.mapCard.map,
+      "Corridor overview",
+      plan.mapCard.resourceNodes.length,
+    ),
+  );
 
   const footer = document.createElement("footer");
   footer.className = "pdf-footer";
   const chips: string[] = [
-    `Scenarios · ${plan.scenarioPlans.map((planItem) => planItem.scenario).join(" + ")}`,
+    `Scenarios · ${plan.scenarioCards.map((planItem) => planItem.scenario).join(" + ")}`,
     `Resources · ${input.resourceNodes.length}`,
     `Generated · ${new Date(plan.meta.generatedAt).toLocaleString()}`,
   ];
@@ -725,7 +723,7 @@ export function exportPlanAsPdf({ plan, input, size }: ExportOptions) {
   const mapCardPage = createMapCardPage(plan, input, sizeConfig);
   grid.appendChild(mapCardPage);
 
-  plan.scenarioPlans.forEach((scenarioPlan) => {
+  plan.scenarioCards.forEach((scenarioPlan) => {
     const page = createScenarioPage(plan, input, sizeConfig, scenarioPlan);
     grid.appendChild(page);
   });

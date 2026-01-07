@@ -44,14 +44,18 @@ type MapLibreModule = {
   Marker: new (options?: { element?: HTMLElement }) => MapLibreMarker;
 };
 
+type MapLibreWindow = Window & { maplibregl?: MapLibreModule };
+
 let maplibrePromise: Promise<MapLibreModule> | null = null;
+
+const getGlobalMapLibre = () => (window as MapLibreWindow).maplibregl;
 
 const loadMapLibre = async () => {
   if (typeof window === "undefined") {
     throw new Error("MapLibre is only available in the browser.");
   }
 
-  const globalMapLibre = (window as Window & { maplibregl?: MapLibreModule }).maplibregl;
+  const globalMapLibre = getGlobalMapLibre();
   if (globalMapLibre) {
     return globalMapLibre;
   }
@@ -69,7 +73,7 @@ const loadMapLibre = async () => {
       const existingScript = document.getElementById("maplibre-gl-js") as HTMLScriptElement | null;
       if (existingScript) {
         existingScript.addEventListener("load", () => {
-          const globalMapLibre = (window as Window & { maplibregl?: MapLibreModule }).maplibregl;
+          const globalMapLibre = getGlobalMapLibre();
           if (globalMapLibre) {
             resolve(globalMapLibre);
           } else {
@@ -85,7 +89,7 @@ const loadMapLibre = async () => {
       script.src = MAPLIBRE_SCRIPT;
       script.async = true;
       script.onload = () => {
-        const globalMapLibre = (window as Window & { maplibregl?: MapLibreModule }).maplibregl;
+        const globalMapLibre = getGlobalMapLibre();
         if (globalMapLibre) {
           resolve(globalMapLibre);
         } else {

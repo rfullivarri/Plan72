@@ -91,8 +91,8 @@ const loadMapLibre = async () => {
     throw new Error("MapLibre is only available in the browser.");
   }
 
-  const module = await import("maplibre-gl");
-  const resolved = (module.default ?? module) as MapLibreModule;
+  const maplibreModule = await import("maplibre-gl");
+  const resolved = (maplibreModule.default ?? maplibreModule) as MapLibreModule;
 
   if (resolved.__isStub) {
     throw new Error("MapLibre stub loaded.");

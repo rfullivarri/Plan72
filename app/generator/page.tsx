@@ -7,8 +7,18 @@ import { MOMENT_CODES, PLAN_LEVELS } from "@/lib/constants";
 import { cityTemplates } from "@/lib/cityTemplates";
 import { geocodeAddress, type GeocodeResult } from "@/lib/geocode";
 import { PlanInput } from "@/lib/schema";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+
+const Globe3D = dynamic(() => import("@/components/Globe3D"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-64 w-full items-center justify-center rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)] text-xs font-mono text-olive">
+      Loading globe…
+    </div>
+  ),
+});
 
 export default function GeneratorPage() {
   const { input, updateInput, loadCityPreset } = usePlan();
@@ -388,20 +398,6 @@ export default function GeneratorPage() {
         </Link>
       </section>
     </main>
-  );
-}
-
-function Globe3D() {
-  return (
-    <div className="relative h-64 w-full overflow-hidden rounded-xl border-2 border-ink bg-[radial-gradient(circle_at_top,_rgba(179,90,42,0.25),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(74,90,58,0.35),_transparent_60%)]">
-      <div className="absolute inset-6 rounded-full border-2 border-ink/70 bg-[radial-gradient(circle_at_35%_30%,rgba(255,255,255,0.85),rgba(74,90,58,0.2)_45%,rgba(27,26,20,0.25)_70%)] shadow-[inset_-18px_-16px_0_rgba(27,26,20,0.15)]" />
-      <div className="absolute inset-10 rounded-full border border-ink/30 opacity-60" />
-      <div className="absolute left-10 top-24 h-20 w-32 rounded-full border border-ink/20 bg-[rgba(255,255,255,0.25)] blur-sm" />
-      <div className="absolute right-8 bottom-10 h-16 w-28 rounded-full border border-ink/20 bg-[rgba(255,255,255,0.2)] blur-sm" />
-      <div className="absolute left-6 top-6 rounded-full border-2 border-ink bg-[rgba(255,255,255,0.8)] px-3 py-1 text-xs font-mono uppercase tracking-[0.2em] text-olive">
-        Globe3D
-      </div>
-    </div>
   );
 }
 

@@ -21,6 +21,8 @@ type MapCorridorProps = {
   title?: string;
   description?: string;
   className?: string;
+  initialCenter?: { lat: number; lng: number };
+  initialZoom?: number;
 };
 
 export default function MapCorridor({
@@ -30,6 +32,8 @@ export default function MapCorridor({
   title = "Mini-map",
   description = "Start, DP1..DP3 y destino en un solo vistazo.",
   className,
+  initialCenter,
+  initialZoom = 12,
 }: MapCorridorProps) {
   const { plan } = usePlan();
   const [leafletLib, setLeafletLib] = useState<LeafletLib | null>(null);
@@ -53,11 +57,14 @@ export default function MapCorridor({
     if (typeof window === "undefined" || !leafletLib) return;
     if (mapRef.current || !mapContainerRef.current) return;
 
+    const startingLat = initialCenter?.lat ?? 41.39;
+    const startingLng = initialCenter?.lng ?? 2.16;
+
     const map = leafletLib.map(mapContainerRef.current, {
       zoomControl: true,
       scrollWheelZoom: true,
       attributionControl: false,
-    }).setView([41.39, 2.16], 12);
+    }).setView([startingLat, startingLng], initialZoom);
 
     leafletLib.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18,
@@ -80,7 +87,12 @@ export default function MapCorridor({
     const coords = corridor.map((point) => [point.lat, point.lng]) as [number, number][];
     layerRef.current.clearLayers();
 
-    if (coords.length === 0) return;
+    if (coords.length === 0) {
+      if (initialCenter) {
+        mapRef.current.setView([initialCenter.lat, initialCenter.lng], initialZoom, { animate: false });
+      }
+      return;
+    }
 
     const labels = corridor.map((point, idx) => {
       if (idx === 0) return point.label || "Start";
@@ -96,13 +108,18 @@ export default function MapCorridor({
 
     leafletLib.polyline(coords, { color: "#1b4332", weight: 4, opacity: 0.8 }).addTo(layerRef.current);
 
+    if (coords.length === 1) {
+      mapRef.current.setView(coords[0], initialZoom, { animate: true });
+      return;
+    }
+
     const bounds = leafletLib.latLngBounds(coords);
     try {
       mapRef.current.fitBounds(bounds, { padding: [20, 20] });
     } catch (error) {
       console.warn("Leaflet fitBounds failed", error);
     }
-  }, [leafletLib, plan.routes.base.corridor]);
+  }, [leafletLib, plan.routes.base.corridor, initialCenter, initialZoom]);
 
   const corridorSummary = useMemo(
     () => plan.routes.base.corridor.map((point) => point.label ?? "").join(" → "),

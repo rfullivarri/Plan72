@@ -136,6 +136,8 @@ export default function MapCorridor({
   initialZoom = 12,
 }: MapCorridorProps) {
   const { plan, input } = usePlan();
+  const mapCard = plan.mapCard;
+  const corridor = mapCard.map.corridor;
   const [maplibre, setMaplibre] = useState<MapLibreModule | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -205,7 +207,6 @@ export default function MapCorridor({
     if (!maplibre || !mapRef.current || !mapReady) return;
 
     const map = mapRef.current;
-    const corridor = plan.routes.base.corridor;
     const coords = corridor.map((point) => [point.lng, point.lat]) as [number, number][];
 
     const source = map.getSource(ROUTE_SOURCE_ID);
@@ -285,7 +286,7 @@ export default function MapCorridor({
     const bounds = new maplibre.LngLatBounds(coords[0], coords[0]);
     coords.slice(1).forEach((coord) => bounds.extend(coord));
     map.fitBounds(bounds, { padding: 20, duration: 0 });
-  }, [maplibre, mapReady, plan.routes.base.corridor, input.resourceNodes, showResourceNodes, initialCenter, initialZoom]);
+  }, [maplibre, mapReady, corridor, input.resourceNodes, showResourceNodes, initialCenter, initialZoom]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -296,8 +297,8 @@ export default function MapCorridor({
   }, []);
 
   const corridorSummary = useMemo(
-    () => mapCard.map.corridor.map((point) => point.label ?? "").join(" → "),
-    [mapCard.map.corridor],
+    () => corridor.map((point) => point.label ?? "").join(" → "),
+    [corridor],
   );
 
   return (
@@ -324,7 +325,7 @@ export default function MapCorridor({
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Corridor</p>
           <p className="font-semibold">{corridorSummary}</p>
           <ul className="mt-2 space-y-1 text-[13px]">
-            {plan.routes.base.corridor.map((point, idx) => (
+            {corridor.map((point, idx) => (
               <li key={point.label ?? idx}>
                 {String(idx + 1).padStart(2, "0")}. {point.label ?? `DP${idx}`} — {point.lat.toFixed(3)}, {" "}
                 {point.lng.toFixed(3)}

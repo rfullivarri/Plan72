@@ -66,7 +66,7 @@ export default function ResultsPage() {
                   <p className="text-sm text-ink/80">Variantes 2D y 3D apiladas en una sola carta.</p>
                 </div>
                 <span className="rounded-full border-2 border-ink px-3 py-1 text-xs font-mono uppercase text-olive">
-                  {plan.routes.base.intent}
+                  {plan.mapCard.map.intent}
                 </span>
               </div>
               <div className="space-y-4">

@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePlan } from "./PlanContext";
 
 const MAPLIBRE_STYLE = "https://demotiles.maplibre.org/style.json";
+const MAPLIBRE_SCRIPT = "https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js";
+const MAPLIBRE_CSS = "https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css";
 const ROUTE_SOURCE_ID = "corridor-route";
 const ROUTE_LAYER_ID = "corridor-line";
 
@@ -73,6 +75,12 @@ type MapLibreModule = {
   LngLatBounds: new (sw: [number, number], ne: [number, number]) => MapLibreLngLatBounds;
 };
 
+declare global {
+  interface Window {
+    maplibregl?: MapLibreModule;
+  }
+}
+
 type MapCorridorProps = {
   embedded?: boolean;
   showSummary?: boolean;
@@ -85,13 +93,53 @@ type MapCorridorProps = {
   initialZoom?: number;
 };
 
+const ensureMapLibreCss = () => {
+  if (document.querySelector(`link[data-maplibre="true"]`)) {
+    return;
+  }
+
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = MAPLIBRE_CSS;
+  link.dataset.maplibre = "true";
+  document.head.appendChild(link);
+};
+
 const loadMapLibre = async () => {
   if (typeof window === "undefined") {
     throw new Error("MapLibre is only available in the browser.");
   }
 
-  const module = await import("maplibre-gl");
-  return (module.default ?? module) as MapLibreModule;
+  if (window.maplibregl) {
+    return window.maplibregl;
+  }
+
+  ensureMapLibreCss();
+
+  const existingScript = document.querySelector<HTMLScriptElement>(`script[data-maplibre="true"]`);
+  const script = existingScript ?? document.createElement("script");
+
+  const loadPromise = new Promise<MapLibreModule>((resolve, reject) => {
+    const handleLoad = () => {
+      if (window.maplibregl) {
+        resolve(window.maplibregl);
+        return;
+      }
+      reject(new Error("MapLibre did not initialize."));
+    };
+
+    script.addEventListener("load", handleLoad, { once: true });
+    script.addEventListener("error", () => reject(new Error("MapLibre failed to load.")), { once: true });
+  });
+
+  if (!existingScript) {
+    script.src = MAPLIBRE_SCRIPT;
+    script.async = true;
+    script.dataset.maplibre = "true";
+    document.head.appendChild(script);
+  }
+
+  return loadPromise;
 };
 
 const createMarkerElement = (label: string, variant: "route" | "resource") => {

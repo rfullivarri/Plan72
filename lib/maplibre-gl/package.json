@@ -1,0 +1,7 @@
+{
+  "name": "maplibre-gl",
+  "version": "3.6.1",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts"
+}

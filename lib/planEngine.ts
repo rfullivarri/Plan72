@@ -166,7 +166,7 @@ export function generatePlan(input: PlanInput): PlanOutput {
       resourcePriority: priorityOrder,
     };
 
-    return card as const;
+    return card;
   });
 
   return {

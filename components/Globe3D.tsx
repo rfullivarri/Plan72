@@ -51,8 +51,9 @@ const loadMapLibre = async () => {
     throw new Error("MapLibre is only available in the browser.");
   }
 
-  if ((window as Window & { maplibregl?: MapLibreModule }).maplibregl) {
-    return (window as Window & { maplibregl: MapLibreModule }).maplibregl;
+  const globalMapLibre = (window as Window & { maplibregl?: MapLibreModule }).maplibregl;
+  if (globalMapLibre) {
+    return globalMapLibre;
   }
 
   if (!maplibrePromise) {

@@ -1,6 +1,7 @@
 {
   "city": "BCN",
   "label": "Barcelona",
+  "country": "Spain",
   "defaults": {
     "start": { "label": "Forum", "lat": 41.411, "lng": 2.219 },
     "level": "STANDARD",

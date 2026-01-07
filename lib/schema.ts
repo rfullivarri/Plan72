@@ -25,6 +25,7 @@ export interface ResourceNode {
 }
 
 export interface PlanInput {
+  country: string;
   city: string;
   start: Coordinate;
   peopleCount: number;

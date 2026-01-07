@@ -2,7 +2,7 @@
 
 import { ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import { buildPlanInputFromTemplate, defaultCityTemplate } from "@/lib/cityTemplates";
+import { buildPlanInputFromTemplate, cityTemplates, defaultCityTemplate } from "@/lib/cityTemplates";
 import { generatePlan } from "@/lib/planEngine";
 import { PlanInput, PlanLevel, PlanOutput, ScenarioCode } from "@/lib/schema";
 
@@ -43,9 +43,13 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     if (savedProfile) {
       try {
         const parsed = JSON.parse(savedProfile) as { input: PlanInput; savedAt?: string };
+        const cityTemplate = cityTemplates[parsed.input.city];
         const normalizedInput = {
           ...parsed.input,
-          scenarios: parsed.input.scenarios ?? ("scenario" in parsed.input ? [(parsed.input as unknown as { scenario?: ScenarioCode }).scenario ?? "UNK"] : ["UNK"]),
+          country: parsed.input.country ?? cityTemplate?.country ?? "Unknown",
+          scenarios:
+            parsed.input.scenarios ??
+            ("scenario" in parsed.input ? [(parsed.input as unknown as { scenario?: ScenarioCode }).scenario ?? "UNK"] : ["UNK"]),
         } satisfies PlanInput;
         setInput(normalizedInput);
         setPlan(generatePlan(normalizedInput));

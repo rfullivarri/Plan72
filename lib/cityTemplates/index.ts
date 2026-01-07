@@ -8,6 +8,7 @@ type AvoidRuleKey = "avoidCriticalInfra" | "avoidTouristClusters" | "avoidUnderg
 export type CityTemplate = {
   city: string;
   label: string;
+  country?: string;
   defaults: {
     start: PlanStart;
     level: PlanInput["level"];
@@ -43,6 +44,7 @@ export function buildPlanInputFromTemplate(city: string, overrides: Partial<Plan
 
   if (template) {
     const base: PlanInput = {
+      country: template.country ?? "Unknown",
       city: template.city,
       start: template.defaults.start,
       peopleCount: template.defaults.peopleCount,
@@ -56,6 +58,7 @@ export function buildPlanInputFromTemplate(city: string, overrides: Partial<Plan
     return {
       ...base,
       ...overrides,
+      country: overrides.country ?? base.country,
       start: overrides.start ?? base.start,
       preferences: { ...base.preferences, ...overrides.preferences },
       resourceNodes: overrides.resourceNodes ?? base.resourceNodes,
@@ -64,6 +67,7 @@ export function buildPlanInputFromTemplate(city: string, overrides: Partial<Plan
   }
 
   const fallback: PlanInput = {
+    country: overrides.country ?? "Unknown",
     city,
     start: overrides.start ?? { lat: 0, lng: 0, label: "Start" },
     peopleCount: overrides.peopleCount ?? 1,

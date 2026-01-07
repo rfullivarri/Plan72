@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { usePlan } from "./PlanContext";
 
-const MAPLIBRE_SCRIPT = "https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js";
 const MAPLIBRE_STYLE = "https://demotiles.maplibre.org/style.json";
 const ROUTE_SOURCE_ID = "corridor-route";
 const ROUTE_LAYER_ID = "corridor-line";
@@ -74,12 +73,6 @@ type MapLibreModule = {
   LngLatBounds: new (sw: [number, number], ne: [number, number]) => MapLibreLngLatBounds;
 };
 
-declare global {
-  interface Window {
-    maplibregl?: MapLibreModule;
-  }
-}
-
 type MapCorridorProps = {
   embedded?: boolean;
   showSummary?: boolean;
@@ -92,29 +85,13 @@ type MapCorridorProps = {
   initialZoom?: number;
 };
 
-const loadMapLibre = () => {
+const loadMapLibre = async () => {
   if (typeof window === "undefined") {
-    return Promise.reject(new Error("MapLibre is only available in the browser."));
+    throw new Error("MapLibre is only available in the browser.");
   }
 
-  if (window.maplibregl) {
-    return Promise.resolve(window.maplibregl);
-  }
-
-  return new Promise<MapLibreModule>((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = MAPLIBRE_SCRIPT;
-    script.async = true;
-    script.onload = () => {
-      if (window.maplibregl) {
-        resolve(window.maplibregl);
-      } else {
-        reject(new Error("MapLibre failed to load."));
-      }
-    };
-    script.onerror = () => reject(new Error("MapLibre failed to load."));
-    document.head.appendChild(script);
-  });
+  const module = await import("maplibre-gl");
+  return (module.default ?? module) as MapLibreModule;
 };
 
 const createMarkerElement = (label: string, variant: "route" | "resource") => {

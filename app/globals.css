@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css");
+@import "maplibre-gl/dist/maplibre-gl.css";
 
 :root {
   --paper: #f5e8cc;

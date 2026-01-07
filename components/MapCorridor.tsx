@@ -14,7 +14,23 @@ const iconUrls = {
 
 type LeafletLib = typeof import("leaflet");
 
-export default function MapCorridor() {
+type MapCorridorProps = {
+  embedded?: boolean;
+  showSummary?: boolean;
+  showHeader?: boolean;
+  title?: string;
+  description?: string;
+  className?: string;
+};
+
+export default function MapCorridor({
+  embedded = false,
+  showSummary = true,
+  showHeader = true,
+  title = "Mini-map",
+  description = "Start, DP1..DP3 y destino en un solo vistazo.",
+  className,
+}: MapCorridorProps) {
   const { plan } = usePlan();
   const [leafletLib, setLeafletLib] = useState<LeafletLib | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
@@ -94,33 +110,38 @@ export default function MapCorridor() {
   );
 
   return (
-    <div className="card-frame p-4 space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <div className="font-display text-xl">Mini-map</div>
-          <p className="text-sm text-ink/80">Start, DP1..DP3 y destino en un solo vistazo.</p>
+    <div className={`${embedded ? "space-y-3" : "card-frame p-4 space-y-3"} ${className ?? ""}`.trim()}>
+      {showHeader && (
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <div className="font-display text-xl">{title}</div>
+            <p className="text-sm text-ink/80">{description}</p>
+          </div>
+          <span className="rounded-full border-2 border-ink px-3 py-1 text-xs font-mono uppercase text-olive">
+            {plan.routes.base.intent}
+          </span>
         </div>
-        <span className="rounded-full border-2 border-ink px-3 py-1 text-xs font-mono uppercase text-olive">
-          {plan.routes.base.intent}
-        </span>
-      </div>
+      )}
 
       <div
         ref={mapContainerRef}
         className="h-64 w-full overflow-hidden rounded-xl border-2 border-ink shadow-[10px_12px_0_rgba(27,26,20,0.16)]"
       />
 
-      <div className="rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.7)] p-3 text-sm">
-        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Corridor</p>
-        <p className="font-semibold">{corridorSummary}</p>
-        <ul className="mt-2 space-y-1 text-[13px]">
-          {plan.routes.base.corridor.map((point, idx) => (
-            <li key={point.label ?? idx}>
-              {String(idx + 1).padStart(2, "0")}. {point.label ?? `DP${idx}`} — {point.lat.toFixed(3)}, {point.lng.toFixed(3)}
-            </li>
-          ))}
-        </ul>
-      </div>
+      {showSummary && (
+        <div className="rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.7)] p-3 text-sm">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Corridor</p>
+          <p className="font-semibold">{corridorSummary}</p>
+          <ul className="mt-2 space-y-1 text-[13px]">
+            {plan.routes.base.corridor.map((point, idx) => (
+              <li key={point.label ?? idx}>
+                {String(idx + 1).padStart(2, "0")}. {point.label ?? `DP${idx}`} — {point.lat.toFixed(3)},{" "}
+                {point.lng.toFixed(3)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

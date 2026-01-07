@@ -12,21 +12,23 @@ const scenarios: { code: ScenarioCode; label: string; detail: string }[] = [
   { code: "UNK", label: "Unknown", detail: "Señal gris" },
 ];
 
-export default function ScenarioSelector() {
+export default function ScenarioSelector({ showHeader = true }: { showHeader?: boolean }) {
   const { input, updateInput } = usePlan();
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Scan</p>
-          <h3 className="font-display text-3xl leading-tight">Scenario intake</h3>
-          <p className="text-sm text-ink/70">Selecciona uno o varios; cada uno genera una carta A6.</p>
+      {showHeader && (
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Scan</p>
+            <h3 className="font-display text-3xl leading-tight">Scenario intake</h3>
+            <p className="text-sm text-ink/70">Selecciona uno o varios; cada uno genera una carta A6.</p>
+          </div>
+          <span className="rounded-full border-2 border-ink px-3 py-1 text-xs font-mono bg-[rgba(179,90,42,0.1)]">
+            TVA CLOCK 72:00
+          </span>
         </div>
-        <span className="rounded-full border-2 border-ink px-3 py-1 text-xs font-mono bg-[rgba(179,90,42,0.1)]">
-          TVA CLOCK 72:00
-        </span>
-      </div>
+      )}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {scenarios.map((scenario) => {
           const isActive = input.scenarios.includes(scenario.code);

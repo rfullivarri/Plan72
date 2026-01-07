@@ -1,9 +1,6 @@
 "use client";
 
-import CardPreview from "@/components/CardPreview";
 import MapCorridor from "@/components/MapCorridor";
-import MascotPanel from "@/components/MascotPanel";
-import PdfExportButton from "@/components/PdfExportButton";
 import ScenarioSelector from "@/components/ScenarioSelector";
 import { usePlan } from "@/components/PlanContext";
 import { MOMENT_CODES, PLAN_LEVELS } from "@/lib/constants";
@@ -11,29 +8,18 @@ import { cityTemplates } from "@/lib/cityTemplates";
 import { geocodeAddress, type GeocodeResult } from "@/lib/geocode";
 import { PlanInput } from "@/lib/schema";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function GeneratorPage() {
-  const { input, updateInput, persistProfile, lastSavedAt, loadCityPreset } = usePlan();
+  const { input, updateInput, loadCityPreset } = usePlan();
   const [newNode, setNewNode] = useState({ label: "", lat: "", lng: "", types: "A" });
-  const [previewScenario, setPreviewScenario] = useState(input.scenarios[0] ?? "UNK");
   const [addressQuery, setAddressQuery] = useState("");
   const [geocodeResults, setGeocodeResults] = useState<GeocodeResult[]>([]);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
   const [latInput, setLatInput] = useState(input.start.lat.toString());
   const [lngInput, setLngInput] = useState(input.start.lng.toString());
   const [labelInput, setLabelInput] = useState(input.start.label ?? "");
-
-  const savedLabel = useMemo(() => {
-    if (!lastSavedAt) return "Auto-save pendiente";
-    return new Date(lastSavedAt).toLocaleString();
-  }, [lastSavedAt]);
-
-  useEffect(() => {
-    if (!input.scenarios.includes(previewScenario)) {
-      setPreviewScenario(input.scenarios[0] ?? "UNK");
-    }
-  }, [input.scenarios, previewScenario]);
+  const [activeStep, setActiveStep] = useState(1);
 
   useEffect(() => {
     setLatInput(input.start.lat.toString());
@@ -119,6 +105,8 @@ export default function GeneratorPage() {
     setLocationStatus("Coordenadas aplicadas.");
   };
 
+  const showGlobe = activeStep <= 2;
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-10 space-y-8">
       <header id="how" className="manual-surface relative overflow-hidden px-6 py-8 sm:px-8">
@@ -142,12 +130,47 @@ export default function GeneratorPage() {
 
       <section className="grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
         <div className="space-y-5">
-          <div className="card-frame p-5 space-y-4">
+          <div className="card-frame p-5 space-y-4" onClick={() => setActiveStep(1)}>
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Step 1</p>
+              <h2 className="font-display text-2xl">Country</h2>
+              <p className="text-sm text-ink/70">Selecciona tu país de referencia.</p>
+            </div>
+            <label className="space-y-1 text-sm font-semibold">
+              Country
+              <input
+                className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
+                placeholder="Spain"
+                value={input.country}
+                onFocus={() => setActiveStep(1)}
+                onChange={(e) => updateInput("country", e.target.value)}
+              />
+            </label>
+          </div>
+
+          <div className="card-frame p-5 space-y-4" onClick={() => setActiveStep(2)}>
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Step 2</p>
+              <h2 className="font-display text-2xl">City</h2>
+              <p className="text-sm text-ink/70">Define la ciudad base para el corredor.</p>
+            </div>
+            <label className="space-y-1 text-sm font-semibold">
+              City name
+              <input
+                className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
+                value={input.city}
+                onFocus={() => setActiveStep(2)}
+                onChange={(e) => handleCityChange(e.target.value)}
+              />
+            </label>
+          </div>
+
+          <div className="card-frame p-5 space-y-4" onClick={() => setActiveStep(3)}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Location</p>
-                <h2 className="font-display text-2xl">Set your location</h2>
-                <p className="text-sm text-ink/70">Usa dirección/POI o coordenadas. Se aplica al origen de la ruta.</p>
+                <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Step 3</p>
+                <h2 className="font-display text-2xl">Address or pin</h2>
+                <p className="text-sm text-ink/70">Usa dirección/POI o fija un pin con coordenadas.</p>
               </div>
             </div>
             <div className="grid gap-3">
@@ -157,6 +180,7 @@ export default function GeneratorPage() {
                   className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
                   placeholder="Carrer Aragó 200, BCN"
                   value={addressQuery}
+                  onFocus={() => setActiveStep(3)}
                   onChange={(e) => setAddressQuery(e.target.value)}
                 />
               </label>
@@ -174,7 +198,10 @@ export default function GeneratorPage() {
                   <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Suggestions</p>
                   <ul className="mt-2 space-y-2">
                     {geocodeResults.map((result) => (
-                      <li key={`${result.displayName}-${result.lat}-${result.lng}`} className="flex items-center justify-between gap-2">
+                      <li
+                        key={`${result.displayName}-${result.lat}-${result.lng}`}
+                        className="flex items-center justify-between gap-2"
+                      >
                         <div>
                           <p className="font-semibold">{result.displayName}</p>
                           <p className="text-xs text-ink/70">
@@ -190,9 +217,12 @@ export default function GeneratorPage() {
                 </div>
               )}
             </div>
-            <details className="rounded-xl border-2 border-dashed border-ink/40 p-3">
+            <details
+              className="rounded-xl border-2 border-dashed border-ink/40 p-3"
+              onToggle={() => setActiveStep(3)}
+            >
               <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.2em] text-olive">
-                Use coordinates
+                Pin / coordinates
               </summary>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <label className="space-y-1 text-sm font-semibold">
@@ -236,19 +266,50 @@ export default function GeneratorPage() {
             </details>
           </div>
 
-          <ScenarioSelector />
-
-          <div className="card-frame p-5 space-y-4">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Setup</p>
-              <h2 className="font-display text-2xl">Moment & team</h2>
+          <div className="card-frame p-5 space-y-4" onClick={() => setActiveStep(4)}>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Step 4</p>
+                <h2 className="font-display text-2xl">Catastrophes</h2>
+                <p className="text-sm text-ink/70">Multi-select de escenarios activos.</p>
+              </div>
+              <span className="rounded-full border-2 border-ink px-3 py-1 text-xs font-mono bg-[rgba(179,90,42,0.1)]">
+                TVA CLOCK 72:00
+              </span>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div onClick={() => setActiveStep(4)} onFocus={() => setActiveStep(4)}>
+              <ScenarioSelector showHeader={false} />
+            </div>
+          </div>
+
+          <div className="card-frame p-5 space-y-4" onClick={() => setActiveStep(5)}>
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Step 5</p>
+              <h2 className="font-display text-2xl">Level · Moment · Team size</h2>
+              <p className="text-sm text-ink/70">Compacta el set operativo.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="space-y-1 text-sm font-semibold">
+                Level
+                <select
+                  className="w-full rounded-lg border-2 border-ink bg-[rgba(245,232,204,0.8)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
+                  value={input.level}
+                  onFocus={() => setActiveStep(5)}
+                  onChange={(e) => updateInput("level", e.target.value as (typeof PLAN_LEVELS)[number])}
+                >
+                  {PLAN_LEVELS.map((level) => (
+                    <option key={level} value={level}>
+                      {level}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="space-y-1 text-sm font-semibold">
                 Moment
                 <select
                   className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
                   value={input.moment}
+                  onFocus={() => setActiveStep(5)}
                   onChange={(e) => updateInput("moment", e.target.value as (typeof MOMENT_CODES)[number])}
                 >
                   {MOMENT_CODES.map((code) => (
@@ -265,78 +326,59 @@ export default function GeneratorPage() {
                   min={1}
                   className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
                   value={input.peopleCount}
+                  onFocus={() => setActiveStep(5)}
                   onChange={(e) => updateInput("peopleCount", parseInt(e.target.value, 10) || 0)}
                 />
               </label>
-              <label className="space-y-1 text-sm font-semibold">
-                Level
-                <select
-                  className="w-full rounded-lg border-2 border-ink bg-[rgba(245,232,204,0.8)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
-                  value={input.level}
-                  onChange={(e) => updateInput("level", e.target.value as (typeof PLAN_LEVELS)[number])}
-                >
-                  {PLAN_LEVELS.map((level) => (
-                    <option key={level} value={level}>
-                      {level}
-                    </option>
-                  ))}
-                </select>
-              </label>
             </div>
           </div>
 
-          <ResourceNodeEditor newNode={newNode} setNewNode={setNewNode} resourceNodes={input.resourceNodes} />
+          <ResourceNodeEditor
+            newNode={newNode}
+            setNewNode={setNewNode}
+            resourceNodes={input.resourceNodes}
+            onActivate={() => setActiveStep(6)}
+          />
         </div>
 
         <div className="relative space-y-4 lg:pl-6">
-          <div className="card-frame p-4 space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Preview</p>
-                <h2 className="font-display text-2xl">A6 card</h2>
-              </div>
-              {input.scenarios.length > 1 && (
-                <div className="flex flex-wrap gap-2">
-                  {input.scenarios.map((scenario) => (
-                    <button
-                      key={scenario}
-                      type="button"
-                      onClick={() => setPreviewScenario(scenario)}
-                      className={`rounded-full border-2 border-ink px-3 py-1 text-xs font-mono ${
-                        previewScenario === scenario ? "bg-[rgba(179,90,42,0.18)]" : "bg-[rgba(255,255,255,0.7)]"
-                      }`}
-                    >
-                      {scenario}
-                    </button>
-                  ))}
-                </div>
-              )}
+          <div className="card-frame p-5 space-y-4 sticky top-6">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Visualization</p>
+              <h2 className="font-display text-2xl">{showGlobe ? "Globe3D" : "2D Map"}</h2>
+              <p className="text-sm text-ink/70">
+                {showGlobe ? "Vista global para país y ciudad." : "Vista de ruta para dirección y escenarios."}
+              </p>
             </div>
-            {input.scenarios.length > 1 && (
-              <p className="text-xs text-ink/70">Preview scenario</p>
+            {showGlobe ? (
+              <Globe3D />
+            ) : (
+              <MapCorridor embedded showHeader={false} showSummary={false} />
             )}
-            <CardPreview scenario={previewScenario} />
           </div>
-          <MapCorridor />
-          <MascotPanel />
         </div>
       </section>
 
       <section className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-3">
-          <Link href="/results" className="ink-button" aria-label="Generate protocol and go to results">
-            Generate → Results
-          </Link>
-          <PdfExportButton />
-          <button className="ink-button" onClick={persistProfile}>
-            Save profile
-          </button>
-        </div>
-        <span className="rounded-lg border-2 border-dashed border-ink px-3 py-1 text-xs font-mono text-olive bg-[rgba(255,255,255,0.65)]">
-          Perfil guardado: {savedLabel}
-        </span>
+        <Link href="/results" className="ink-button" aria-label="Generate protocol and go to results">
+          Generate
+        </Link>
       </section>
     </main>
+  );
+}
+
+function Globe3D() {
+  return (
+    <div className="relative h-64 w-full overflow-hidden rounded-xl border-2 border-ink bg-[radial-gradient(circle_at_top,_rgba(179,90,42,0.25),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(74,90,58,0.35),_transparent_60%)]">
+      <div className="absolute inset-6 rounded-full border-2 border-ink/70 bg-[radial-gradient(circle_at_35%_30%,rgba(255,255,255,0.85),rgba(74,90,58,0.2)_45%,rgba(27,26,20,0.25)_70%)] shadow-[inset_-18px_-16px_0_rgba(27,26,20,0.15)]" />
+      <div className="absolute inset-10 rounded-full border border-ink/30 opacity-60" />
+      <div className="absolute left-10 top-24 h-20 w-32 rounded-full border border-ink/20 bg-[rgba(255,255,255,0.25)] blur-sm" />
+      <div className="absolute right-8 bottom-10 h-16 w-28 rounded-full border border-ink/20 bg-[rgba(255,255,255,0.2)] blur-sm" />
+      <div className="absolute left-6 top-6 rounded-full border-2 border-ink bg-[rgba(255,255,255,0.8)] px-3 py-1 text-xs font-mono uppercase tracking-[0.2em] text-olive">
+        Globe3D
+      </div>
+    </div>
   );
 }
 
@@ -344,10 +386,12 @@ function ResourceNodeEditor({
   newNode,
   setNewNode,
   resourceNodes,
+  onActivate,
 }: {
   newNode: { label: string; lat: string; lng: string; types: string };
   setNewNode: (node: { label: string; lat: string; lng: string; types: string }) => void;
   resourceNodes: PlanInput["resourceNodes"];
+  onActivate?: () => void;
 }) {
   const { addResourceNode, updateResourceNode, removeResourceNode } = usePlan();
 
@@ -367,9 +411,9 @@ function ResourceNodeEditor({
   };
 
   return (
-    <details className="card-frame p-5 space-y-3">
+    <details className="card-frame p-5 space-y-3" onToggle={onActivate} onClick={onActivate}>
       <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.25em] text-olive">
-        Resource nodes (optional)
+        Step 6 · Advanced (resource nodes optional)
       </summary>
       <div className="space-y-3">
         <div className="flex items-center justify-between">

@@ -29,8 +29,8 @@ export default function ResultsPage() {
           <p className="font-mono text-xs text-olive tracking-[0.25em]">RESULTS</p>
           <h1 className="font-display text-4xl">Generated Protocol</h1>
           <p className="text-sm text-ink/80">
-            Una carta por escenario con ruta de escape, mapa mínimo, bullets STG0..STG3 y bloque do/don&apos;t. Exporta en A6 o A7
-            para imprimir y laminar.
+            Una carta de mapa centralizada con rutas y nodos, más una tarjeta por escenario con bullets STG0..STG3 y bloque do/don&apos;t.
+            Exporta en A6 o A7 para imprimir y laminar.
           </p>
         </header>
 

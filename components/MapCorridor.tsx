@@ -36,6 +36,7 @@ export default function MapCorridor({
   initialZoom = 12,
 }: MapCorridorProps) {
   const { plan } = usePlan();
+  const mapCard = plan.mapCard;
   const [leafletLib, setLeafletLib] = useState<LeafletLib | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const layerRef = useRef<LayerGroup | null>(null);
@@ -83,7 +84,7 @@ export default function MapCorridor({
   useEffect(() => {
     if (!leafletLib || !mapRef.current || !layerRef.current) return;
 
-    const corridor = plan.routes.base.corridor;
+    const corridor = mapCard.map.corridor;
     const coords = corridor.map((point) => [point.lat, point.lng]) as [number, number][];
     layerRef.current.clearLayers();
 
@@ -119,11 +120,11 @@ export default function MapCorridor({
     } catch (error) {
       console.warn("Leaflet fitBounds failed", error);
     }
-  }, [leafletLib, plan.routes.base.corridor, initialCenter, initialZoom]);
+  }, [leafletLib, mapCard.map.corridor, initialCenter, initialZoom]);
 
   const corridorSummary = useMemo(
-    () => plan.routes.base.corridor.map((point) => point.label ?? "").join(" → "),
-    [plan.routes.base.corridor],
+    () => mapCard.map.corridor.map((point) => point.label ?? "").join(" → "),
+    [mapCard.map.corridor],
   );
 
   return (
@@ -135,7 +136,7 @@ export default function MapCorridor({
             <p className="text-sm text-ink/80">{description}</p>
           </div>
           <span className="rounded-full border-2 border-ink px-3 py-1 text-xs font-mono uppercase text-olive">
-            {plan.routes.base.intent}
+            {mapCard.map.intent}
           </span>
         </div>
       )}
@@ -149,14 +150,40 @@ export default function MapCorridor({
         <div className="rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.7)] p-3 text-sm">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Corridor</p>
           <p className="font-semibold">{corridorSummary}</p>
-          <ul className="mt-2 space-y-1 text-[13px]">
-            {plan.routes.base.corridor.map((point, idx) => (
-              <li key={point.label ?? idx}>
-                {String(idx + 1).padStart(2, "0")}. {point.label ?? `DP${idx}`} — {point.lat.toFixed(3)},{" "}
-                {point.lng.toFixed(3)}
-              </li>
-            ))}
-          </ul>
+          <div className="mt-2 space-y-3 text-[13px]">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Decision points</p>
+              <ul className="mt-1 space-y-1">
+                {mapCard.decisionPoints.map((point, idx) => (
+                  <li key={point.label ?? idx}>
+                    {String(idx + 1).padStart(2, "0")}. {point.label ?? `DP${idx + 1}`} — {point.lat.toFixed(3)},{" "}
+                    {point.lng.toFixed(3)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Resource nodes</p>
+              {mapCard.resourceNodes.length === 0 ? (
+                <p className="text-ink/70">No nodes added.</p>
+              ) : (
+                <ul className="mt-1 space-y-1">
+                  {mapCard.resourceNodes.map((node) => (
+                    <li key={node.id}>
+                      {node.label} · {node.types.join(", ")} — {node.lat.toFixed(3)}, {node.lng.toFixed(3)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-mono uppercase tracking-[0.2em] text-olive">
+                {mapCard.resourceLegend.map((entry) => (
+                  <span key={entry.type} className="rounded-full border border-ink/50 px-2 py-1">
+                    {entry.type} · {entry.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

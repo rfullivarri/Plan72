@@ -4,17 +4,17 @@ import { usePlan } from "./PlanContext";
 
 export default function CardStack() {
   const { plan } = usePlan();
-  const scenarioPlans = plan.scenarioPlans;
+  const scenarioCards = plan.scenarioCards;
 
   return (
     <div className="space-y-2">
       <h4 className="font-display text-2xl">Protocol Cards</h4>
       <div className="space-y-3">
-        {scenarioPlans.map(({ scenario, card }, idx) => (
+        {scenarioCards.map((card, idx) => (
           <details key={card.id} className="card-frame p-4" open={idx === 0}>
             <summary className="flex cursor-pointer items-center justify-between gap-3 text-left">
               <div>
-                <p className="font-mono text-xs text-olive">{scenario}</p>
+                <p className="font-mono text-xs text-olive">{card.scenario}</p>
                 <p className="font-semibold">{card.label}</p>
               </div>
               <div className="text-right text-sm font-mono">
@@ -50,7 +50,7 @@ export default function CardStack() {
                   </ul>
                 </div>
                 <div className="rounded-md border border-dashed border-ink/40 px-2 py-1 font-mono text-[11px] uppercase tracking-[0.2em] text-olive">
-                  Nodes: {card.resourcePriority.join(" · ")}
+                  Route: {card.routeId} · Nodes: {card.nodeSummary}
                 </div>
               </div>
             </div>

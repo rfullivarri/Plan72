@@ -482,7 +482,7 @@ function createScenarioPage(
   plan: PlanOutput,
   input: PlanInput,
   size: SizeConfig,
-  cardPlan: PlanOutput["scenarioPlans"][number],
+  cardPlan: PlanOutput["scenarioCards"][number],
 ) {
   const page = document.createElement("section");
   page.className = "pdf-page";
@@ -505,13 +505,13 @@ function createScenarioPage(
   titleLabel.textContent = `${input.city} / ${humanizeScenario(cardPlan.scenario)} / ${input.moment}`;
   const subtitle = document.createElement("p");
   subtitle.className = "pdf-card__meta";
-  subtitle.textContent = `Nivel ${humanizeLevel(input.level)} · ${cardPlan.card.mode} corridor · ${size.label}`;
+  subtitle.textContent = `Nivel ${humanizeLevel(input.level)} · ${cardPlan.mode} corridor · ${size.label}`;
   title.appendChild(titleLabel);
   title.appendChild(subtitle);
 
   const badge = document.createElement("div");
   badge.className = "pdf-badge";
-  badge.innerHTML = `<div>Scenario</div><strong>${cardPlan.card.label}</strong>`;
+  badge.innerHTML = `<div>Scenario</div><strong>${cardPlan.label}</strong>`;
 
   header.appendChild(title);
   header.appendChild(badge);
@@ -524,20 +524,20 @@ function createScenarioPage(
 
   const mainTitle = document.createElement("p");
   mainTitle.className = "pdf-section__title";
-  mainTitle.textContent = cardPlan.card.routeSummary;
+  mainTitle.textContent = cardPlan.routeSummary;
 
-  const stagesList = createStageList(cardPlan.card.stages);
+  const stagesList = createStageList(cardPlan.stages);
 
   const doDont = document.createElement("div");
   doDont.className = "grid grid-cols-2 gap-3";
   const doTitle = document.createElement("p");
   doTitle.className = "pdf-section__title";
   doTitle.textContent = "Do";
-  const doList = createList(cardPlan.card.do);
+  const doList = createList(cardPlan.do);
   const dontTitle = document.createElement("p");
   dontTitle.className = "pdf-section__title";
   dontTitle.textContent = "Don’t";
-  const dontList = createList(cardPlan.card.dont.map((item) => `× ${item}`));
+  const dontList = createList(cardPlan.dont.map((item) => `× ${item}`));
 
   const doBlock = document.createElement("div");
   doBlock.appendChild(doTitle);
@@ -551,8 +551,134 @@ function createScenarioPage(
   doDont.appendChild(dontBlock);
 
   mainPanel.appendChild(mainTitle);
+  const routeMeta = document.createElement("p");
+  routeMeta.className = "pdf-card__meta";
+  routeMeta.textContent = `Route ${cardPlan.routeId} · Nodes ${cardPlan.nodeSetId} · ${cardPlan.nodeSummary}`;
+
   mainPanel.appendChild(stagesList);
   mainPanel.appendChild(doDont);
+  mainPanel.appendChild(routeMeta);
+
+  body.appendChild(mainPanel);
+
+  const footer = document.createElement("footer");
+  footer.className = "pdf-footer";
+  const chips: string[] = [
+    `Mode · ${cardPlan.mode}`,
+    `Resources · ${cardPlan.nodeSummary}`,
+    `Priority · ${cardPlan.resourcePriority.join(" · ")}`,
+    `Generated · ${new Date(plan.meta.generatedAt).toLocaleString()}`,
+  ];
+
+  chips.forEach((chipText) => {
+    const chip = document.createElement("span");
+    chip.className = "pdf-chip";
+    chip.textContent = chipText;
+    footer.appendChild(chip);
+  });
+
+  card.appendChild(header);
+  card.appendChild(body);
+  card.appendChild(footer);
+
+  page.appendChild(card);
+  return page;
+}
+
+function createMapPage(plan: PlanOutput, input: PlanInput, size: SizeConfig) {
+  const page = document.createElement("section");
+  page.className = "pdf-page";
+
+  ["tl", "tr", "bl", "br"].forEach((pos) => {
+    const crop = document.createElement("div");
+    crop.className = `pdf-crop pdf-crop--${pos}`;
+    page.appendChild(crop);
+  });
+
+  const card = document.createElement("article");
+  card.className = "pdf-card";
+
+  const header = document.createElement("header");
+  header.className = "pdf-card__header";
+
+  const title = document.createElement("div");
+  const titleLabel = document.createElement("p");
+  titleLabel.className = "pdf-card__title";
+  titleLabel.textContent = `${input.city} / Map / ${input.moment}`;
+  const subtitle = document.createElement("p");
+  subtitle.className = "pdf-card__meta";
+  subtitle.textContent = `Nivel ${humanizeLevel(input.level)} · Route ${plan.mapCard.routeId} · ${size.label}`;
+  title.appendChild(titleLabel);
+  title.appendChild(subtitle);
+
+  const badge = document.createElement("div");
+  badge.className = "pdf-badge";
+  badge.innerHTML = `<div>MapCard</div><strong>${plan.mapCard.routeSummary}</strong>`;
+
+  header.appendChild(title);
+  header.appendChild(badge);
+
+  const body = document.createElement("div");
+  body.className = "pdf-body";
+
+  const mapPanel = document.createElement("section");
+  mapPanel.className = "pdf-map";
+
+  const mapTitle = document.createElement("p");
+  mapTitle.className = "pdf-map__title";
+  mapTitle.textContent = "Corridor snapshot";
+  mapPanel.appendChild(mapTitle);
+
+  const routeStrip = createRouteStrip(plan.mapCard.map.corridor);
+  mapPanel.appendChild(routeStrip);
+
+  const mapMeta = document.createElement("div");
+  mapMeta.className = "pdf-map__meta";
+  mapMeta.innerHTML = `
+    <div><strong>Intent:</strong> ${plan.mapCard.map.intent}</div>
+    <div><strong>Objective:</strong> ${plan.mapCard.map.objective}</div>
+    <div><strong>Alt routes:</strong> ${plan.mapCard.map.alts.length || "N/A"}</div>
+    <div><strong>Nodes:</strong> ${plan.mapCard.resourceNodes.length}</div>
+  `;
+  mapPanel.appendChild(mapMeta);
+
+  const mainPanel = document.createElement("section");
+  mainPanel.className = "pdf-section";
+
+  const mainTitle = document.createElement("p");
+  mainTitle.className = "pdf-section__title";
+  mainTitle.textContent = "Decision points";
+
+  const decisionPoints = createList(
+    plan.mapCard.decisionPoints.map(
+      (point, idx) => `${String(idx + 1).padStart(2, "0")}. ${point.label ?? `DP${idx + 1}`} — ${point.lat.toFixed(3)}, ${point.lng.toFixed(3)}`,
+    ),
+  );
+
+  const nodesTitle = document.createElement("p");
+  nodesTitle.className = "pdf-section__title";
+  nodesTitle.textContent = "Resource nodes";
+
+  const nodesList = createList(
+    plan.mapCard.resourceNodes.length > 0
+      ? plan.mapCard.resourceNodes.map((node) => `${node.label} · ${node.types.join(", ")} — ${node.lat.toFixed(3)}, ${node.lng.toFixed(3)}`)
+      : ["No nodes added."],
+  );
+
+  const legendTitle = document.createElement("p");
+  legendTitle.className = "pdf-section__title";
+  legendTitle.textContent = "Legend";
+
+  const legendList = createList(
+    plan.mapCard.resourceLegend.map((entry) => `${entry.type} · ${entry.label}`),
+  );
+
+  mainPanel.appendChild(mainTitle);
+  mainPanel.appendChild(decisionPoints);
+  mainPanel.appendChild(nodesTitle);
+  mainPanel.appendChild(nodesList);
+  mainPanel.appendChild(legendTitle);
+  mainPanel.appendChild(legendList);
 
   body.classList.add("pdf-body--solo");
   body.appendChild(mainPanel);
@@ -560,9 +686,8 @@ function createScenarioPage(
   const footer = document.createElement("footer");
   footer.className = "pdf-footer";
   const chips: string[] = [
-    `Mode · ${cardPlan.card.mode}`,
-    `Resources · ${cardPlan.card.resourceNodes.length}`,
-    `Priority · ${cardPlan.card.resourcePriority.join(" · ")}`,
+    `Route · ${plan.mapCard.routeId}`,
+    `Nodes · ${plan.mapCard.nodeSetId}`,
     `Generated · ${new Date(plan.meta.generatedAt).toLocaleString()}`,
   ];
 

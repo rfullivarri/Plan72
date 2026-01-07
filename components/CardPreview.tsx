@@ -6,10 +6,9 @@ import { ScenarioCode } from "@/lib/schema";
 export default function CardPreview({ scenario }: { scenario?: ScenarioCode }) {
   const { input, plan } = usePlan();
   const selectedScenario = scenario ?? input.scenarios[0];
-  const primaryCard =
-    plan.scenarioPlans.find((item) => item.scenario === selectedScenario)?.card ?? plan.scenarioPlans[0]?.card;
-  const corridor = plan.routes.base.corridor;
-  const corridorText = primaryCard?.routeSummary ?? corridor.map((point) => point.label ?? "").join(" → ");
+  const primaryCard = plan.scenarioCards.find((item) => item.scenario === selectedScenario) ?? plan.scenarioCards[0];
+  const corridor = plan.mapCard.map.corridor;
+  const corridorText = plan.mapCard.routeSummary ?? corridor.map((point) => point.label ?? "").join(" → ");
 
   const firstStage = primaryCard?.stages[0];
   const objective = primaryCard?.label ?? "Live objective";

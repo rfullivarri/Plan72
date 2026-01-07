@@ -4,7 +4,7 @@ import { humanizeLevel, humanizeScenarioList, usePlan } from "./PlanContext";
 
 export default function PrintDeck() {
   const { input, plan } = usePlan();
-  const primaryCard = plan.scenarioPlans[0]?.card;
+  const primaryCard = plan.scenarioCards[0];
   const scenarioLabel = humanizeScenarioList(input.scenarios);
 
   return (
@@ -32,7 +32,7 @@ export default function PrintDeck() {
         </header>
 
         <div className="print-grid">
-          {plan.scenarioPlans.map(({ card }) => (
+          {plan.scenarioCards.map((card) => (
             <article key={card.id} className="print-card">
               <div className="print-card__chrome">
                 <span className="print-card__stage">{card.scenario}</span>
@@ -68,7 +68,7 @@ export default function PrintDeck() {
               <div className="print-meta">
                 <span className="print-chip">MODE · {card.mode}</span>
                 <span className="print-chip">Nodes · {card.resourcePriority.join(" · ")}</span>
-                <span className="print-chip">Resource Nodes · {card.resourceNodes.length}</span>
+                <span className="print-chip">{card.nodeSummary}</span>
               </div>
             </article>
           ))}

@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import "leaflet/dist/leaflet.css";
+@import url("https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css");
 
 :root {
   --paper: #f5e8cc;
@@ -556,6 +556,35 @@ body[data-low-ink="on"] .print-card,
 body[data-low-ink="on"] .print-sheet {
   background: #fffefa;
   border-color: #111;
+}
+
+.map-marker {
+  display: flex;
+  min-width: 34px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 2px solid var(--ink);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 4px 6px 0 rgba(27, 26, 20, 0.2);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.map-marker--resource {
+  min-width: 26px;
+  height: 26px;
+  padding: 0;
+  background: rgba(217, 164, 65, 0.85);
+}
+
+.map-marker--route {
+  background: rgba(255, 255, 255, 0.95);
 }
 
 @media print {

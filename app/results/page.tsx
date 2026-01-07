@@ -1,6 +1,7 @@
 "use client";
 
 import CardStack from "@/components/CardStack";
+import Globe3D from "@/components/Globe3D";
 import MapCorridor from "@/components/MapCorridor";
 import MascotPanel from "@/components/MascotPanel";
 import PdfExportButton from "@/components/PdfExportButton";
@@ -9,7 +10,7 @@ import { usePlan } from "@/components/PlanContext";
 import { useMemo, useState } from "react";
 
 export default function ResultsPage() {
-  const { persistProfile, lastSavedAt, lowInkMode, toggleLowInkMode } = usePlan();
+  const { persistProfile, lastSavedAt, lowInkMode, toggleLowInkMode, input, plan } = usePlan();
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   const savedLabel = useMemo(() => {
@@ -58,7 +59,30 @@ export default function ResultsPage() {
         <section className="grid lg:grid-cols-[1.3fr,0.7fr] gap-6 items-start">
           <CardStack />
           <div className="space-y-4">
-            <MapCorridor />
+            <div className="card-frame p-4 space-y-4">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="font-display text-xl">Map overview</div>
+                  <p className="text-sm text-ink/80">Variantes 2D y 3D apiladas en una sola carta.</p>
+                </div>
+                <span className="rounded-full border-2 border-ink px-3 py-1 text-xs font-mono uppercase text-olive">
+                  {plan.routes.base.intent}
+                </span>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">2D corridor</p>
+                  <MapCorridor embedded showHeader={false} showResourceNodes />
+                </div>
+                <div className="space-y-2">
+                  <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Globe3D</p>
+                  <Globe3D
+                    selectedCountry={input.country}
+                    selectedCity={{ name: input.city, lat: input.start.lat, lng: input.start.lng }}
+                  />
+                </div>
+              </div>
+            </div>
             <MascotPanel />
           </div>
         </section>

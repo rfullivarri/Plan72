@@ -60,6 +60,7 @@ type MapLibrePopup = {
 };
 
 type MapLibreModule = {
+  __isStub?: boolean;
   Map: new (options: {
     container: HTMLElement;
     style: string;
@@ -91,7 +92,13 @@ const loadMapLibre = async () => {
   }
 
   const module = await import("maplibre-gl");
-  return (module.default ?? module) as MapLibreModule;
+  const resolved = (module.default ?? module) as MapLibreModule;
+
+  if (resolved.__isStub) {
+    throw new Error("MapLibre stub loaded.");
+  }
+
+  return resolved;
 };
 
 const createMarkerElement = (label: string, variant: "route" | "resource") => {

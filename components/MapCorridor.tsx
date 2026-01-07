@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePlan } from "./PlanContext";
 
 const MAPLIBRE_STYLE = "https://demotiles.maplibre.org/style.json";
+const MAPLIBRE_SCRIPT = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js";
+const MAPLIBRE_CSS = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css";
 const ROUTE_SOURCE_ID = "corridor-route";
 const ROUTE_LAYER_ID = "corridor-line";
 
@@ -74,6 +76,8 @@ type MapLibreModule = {
   LngLatBounds: new (sw: [number, number], ne: [number, number]) => MapLibreLngLatBounds;
 };
 
+let maplibrePromise: Promise<MapLibreModule> | null = null;
+
 type MapCorridorProps = {
   embedded?: boolean;
   showSummary?: boolean;
@@ -91,14 +95,53 @@ const loadMapLibre = async () => {
     throw new Error("MapLibre is only available in the browser.");
   }
 
-  const maplibreModule = await import("maplibre-gl");
-  const resolved = (maplibreModule.default ?? maplibreModule) as MapLibreModule;
-
-  if (resolved.__isStub) {
-    throw new Error("MapLibre stub loaded.");
+  const globalMapLibre = (window as Window & { maplibregl?: MapLibreModule }).maplibregl;
+  if (globalMapLibre) {
+    return globalMapLibre;
   }
 
-  return resolved;
+  if (!maplibrePromise) {
+    maplibrePromise = new Promise<MapLibreModule>((resolve, reject) => {
+      if (!document.getElementById("maplibre-gl-css")) {
+        const link = document.createElement("link");
+        link.id = "maplibre-gl-css";
+        link.rel = "stylesheet";
+        link.href = MAPLIBRE_CSS;
+        document.head.appendChild(link);
+      }
+
+      const existingScript = document.getElementById("maplibre-gl-js") as HTMLScriptElement | null;
+      if (existingScript) {
+        existingScript.addEventListener("load", () => {
+          const globalMapLibre = (window as Window & { maplibregl?: MapLibreModule }).maplibregl;
+          if (globalMapLibre) {
+            resolve(globalMapLibre);
+          } else {
+            reject(new Error("MapLibre script loaded without global."));
+          }
+        });
+        existingScript.addEventListener("error", () => reject(new Error("Failed to load MapLibre script.")));
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.id = "maplibre-gl-js";
+      script.src = MAPLIBRE_SCRIPT;
+      script.async = true;
+      script.onload = () => {
+        const globalMapLibre = (window as Window & { maplibregl?: MapLibreModule }).maplibregl;
+        if (globalMapLibre) {
+          resolve(globalMapLibre);
+        } else {
+          reject(new Error("MapLibre script loaded without global."));
+        }
+      };
+      script.onerror = () => reject(new Error("Failed to load MapLibre script."));
+      document.head.appendChild(script);
+    });
+  }
+
+  return maplibrePromise;
 };
 
 const createMarkerElement = (label: string, variant: "route" | "resource") => {

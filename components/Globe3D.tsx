@@ -153,6 +153,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(({ selectedCountry, sele
       });
 
       map.on("load", () => {
+        if (!map) return;
         map.setFog?.({});
         setMapReady(true);
       });

@@ -1,10 +1,13 @@
 "use client";
 
-import { humanizeLevel, humanizeScenarioList, usePlan } from "./PlanContext";
+import { humanizeLevel, humanizeScenario, usePlan } from "./PlanContext";
+import { ScenarioCode } from "@/lib/schema";
 
-export default function CardPreview() {
+export default function CardPreview({ scenario }: { scenario?: ScenarioCode }) {
   const { input, plan } = usePlan();
-  const primaryCard = plan.scenarioPlans[0]?.card;
+  const selectedScenario = scenario ?? input.scenarios[0];
+  const primaryCard =
+    plan.scenarioPlans.find((item) => item.scenario === selectedScenario)?.card ?? plan.scenarioPlans[0]?.card;
   const corridor = plan.routes.base.corridor;
   const corridorText = primaryCard?.routeSummary ?? corridor.map((point) => point.label ?? "").join(" → ");
 
@@ -13,7 +16,7 @@ export default function CardPreview() {
   const actionWindow = firstStage?.window ?? "00:00";
   const doList = primaryCard?.do ?? [];
   const nodePriorities = primaryCard?.resourcePriority;
-  const scenarioLabel = humanizeScenarioList(input.scenarios);
+  const scenarioLabel = selectedScenario ? humanizeScenario(selectedScenario) : humanizeScenario("UNK");
 
   return (
     <div className="relative mx-auto max-w-md">

@@ -11,8 +11,8 @@ type SizeConfig = {
 };
 
 const SIZE_CONFIG: Record<PrintSizeCode, SizeConfig> = {
-  A6: { code: "A6", label: "A6 · 105 x 148 mm", margin: "8mm", bleed: "4mm" },
-  A7: { code: "A7", label: "A7 · 74 x 105 mm", margin: "6mm", bleed: "3mm" },
+  A6: { code: "A6", label: "A6 · 105 x 148 mm", margin: "10mm", bleed: "5mm" },
+  A7: { code: "A7", label: "A7 · 74 x 105 mm", margin: "8mm", bleed: "4mm" },
 };
 
 type ExportOptions = {
@@ -21,7 +21,8 @@ type ExportOptions = {
   size: PrintSizeCode;
 };
 
-type CorridorPoint = PlanOutput["mapCard"]["map"]["corridor"][number];
+type CorridorPoint = PlanOutput["routes"]["base"]["corridor"][number];
+type MapData = PlanOutput["scenarioPlans"][number]["card"]["map"];
 
 function buildStyleTag(size: SizeConfig) {
   const style = document.createElement("style");
@@ -38,6 +39,7 @@ function buildStyleTag(size: SizeConfig) {
       --pdf-rust: #b35a2a;
       --pdf-bleed: ${size.bleed};
       --pdf-margin: ${size.margin};
+      --pdf-safe: calc(var(--pdf-margin) + 2mm);
       --pdf-shadow: rgba(27, 26, 20, 0.1);
     }
 
@@ -73,7 +75,7 @@ function buildStyleTag(size: SizeConfig) {
       background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(229, 211, 168, 0.4)), var(--pdf-paper);
       border: 1px solid rgba(27, 26, 20, 0.15);
       box-shadow: 0 10px 24px var(--pdf-shadow);
-      padding: calc(${size.margin} / 2 + var(--pdf-bleed));
+      padding: calc(var(--pdf-safe) / 2 + var(--pdf-bleed));
       border-radius: 12px;
       min-height: 100%;
     }
@@ -131,8 +133,13 @@ function buildStyleTag(size: SizeConfig) {
       gap: 10px;
     }
 
-    .pdf-body--single {
+    .pdf-body--solo {
       grid-template-columns: 1fr;
+    }
+
+    .pdf-map-stack {
+      display: grid;
+      gap: 10px;
     }
 
     .pdf-map {
@@ -361,7 +368,32 @@ function createList(items: string[]) {
   return list;
 }
 
-function createStageList(stages: PlanOutput["scenarioCards"][number]["stages"]) {
+function createMapPanel(map: MapData, title: string, resourceNodes: number) {
+  const mapPanel = document.createElement("section");
+  mapPanel.className = "pdf-map";
+
+  const mapTitle = document.createElement("p");
+  mapTitle.className = "pdf-map__title";
+  mapTitle.textContent = title;
+  mapPanel.appendChild(mapTitle);
+
+  const routeStrip = createRouteStrip(map.corridor);
+  mapPanel.appendChild(routeStrip);
+
+  const mapMeta = document.createElement("div");
+  mapMeta.className = "pdf-map__meta";
+  mapMeta.innerHTML = `
+    <div><strong>Intent:</strong> ${map.intent}</div>
+    <div><strong>Objective:</strong> ${map.objective}</div>
+    <div><strong>Alt routes:</strong> ${map.alts.length || "N/A"}</div>
+    <div><strong>Nodes:</strong> ${resourceNodes}</div>
+  `;
+  mapPanel.appendChild(mapMeta);
+
+  return mapPanel;
+}
+
+function createStageList(stages: PlanOutput["scenarioPlans"][number]["card"]["stages"]) {
   const list = document.createElement("ul");
   list.className = "pdf-stages";
   stages.forEach((stage) => {
@@ -375,6 +407,75 @@ function createStageList(stages: PlanOutput["scenarioCards"][number]["stages"]) 
     list.appendChild(li);
   });
   return list;
+}
+
+function createMapCardPage(plan: PlanOutput, input: PlanInput, size: SizeConfig) {
+  const page = document.createElement("section");
+  page.className = "pdf-page";
+
+  ["tl", "tr", "bl", "br"].forEach((pos) => {
+    const crop = document.createElement("div");
+    crop.className = `pdf-crop pdf-crop--${pos}`;
+    page.appendChild(crop);
+  });
+
+  const card = document.createElement("article");
+  card.className = "pdf-card";
+
+  const header = document.createElement("header");
+  header.className = "pdf-card__header";
+
+  const title = document.createElement("div");
+  const titleLabel = document.createElement("p");
+  titleLabel.className = "pdf-card__title";
+  titleLabel.textContent = `${input.city} / MapCard / ${input.moment}`;
+  const subtitle = document.createElement("p");
+  subtitle.className = "pdf-card__meta";
+  subtitle.textContent = `Nivel ${humanizeLevel(input.level)} · ${size.label}`;
+  title.appendChild(titleLabel);
+  title.appendChild(subtitle);
+
+  const badge = document.createElement("div");
+  badge.className = "pdf-badge";
+  badge.innerHTML = `<div>Map</div><strong>Corridor</strong>`;
+
+  header.appendChild(title);
+  header.appendChild(badge);
+
+  const body = document.createElement("div");
+  body.className = "pdf-map-stack";
+
+  const mapCards = plan.scenarioPlans.slice(0, 2).map((scenarioPlan) => ({
+    title: `${humanizeScenario(scenarioPlan.scenario)} corridor`,
+    map: scenarioPlan.card.map,
+    resourceNodes: scenarioPlan.card.resourceNodes.length,
+  }));
+
+  mapCards.forEach((mapCard) => {
+    body.appendChild(createMapPanel(mapCard.map, mapCard.title, mapCard.resourceNodes));
+  });
+
+  const footer = document.createElement("footer");
+  footer.className = "pdf-footer";
+  const chips: string[] = [
+    `Scenarios · ${plan.scenarioPlans.map((planItem) => planItem.scenario).join(" + ")}`,
+    `Resources · ${input.resourceNodes.length}`,
+    `Generated · ${new Date(plan.meta.generatedAt).toLocaleString()}`,
+  ];
+
+  chips.forEach((chipText) => {
+    const chip = document.createElement("span");
+    chip.className = "pdf-chip";
+    chip.textContent = chipText;
+    footer.appendChild(chip);
+  });
+
+  card.appendChild(header);
+  card.appendChild(body);
+  card.appendChild(footer);
+
+  page.appendChild(card);
+  return page;
 }
 
 function createScenarioPage(
@@ -416,7 +517,7 @@ function createScenarioPage(
   header.appendChild(badge);
 
   const body = document.createElement("div");
-  body.className = "pdf-body pdf-body--single";
+  body.className = "pdf-body";
 
   const mainPanel = document.createElement("section");
   mainPanel.className = "pdf-section";
@@ -579,7 +680,7 @@ function createMapPage(plan: PlanOutput, input: PlanInput, size: SizeConfig) {
   mainPanel.appendChild(legendTitle);
   mainPanel.appendChild(legendList);
 
-  body.appendChild(mapPanel);
+  body.classList.add("pdf-body--solo");
   body.appendChild(mainPanel);
 
   const footer = document.createElement("footer");
@@ -621,10 +722,10 @@ export function exportPlanAsPdf({ plan, input, size }: ExportOptions) {
   grid.className = "pdf-grid";
   overlay.appendChild(grid);
 
-  const mapPage = createMapPage(plan, input, sizeConfig);
-  grid.appendChild(mapPage);
+  const mapCardPage = createMapCardPage(plan, input, sizeConfig);
+  grid.appendChild(mapCardPage);
 
-  plan.scenarioCards.forEach((scenarioPlan) => {
+  plan.scenarioPlans.forEach((scenarioPlan) => {
     const page = createScenarioPage(plan, input, sizeConfig, scenarioPlan);
     grid.appendChild(page);
   });

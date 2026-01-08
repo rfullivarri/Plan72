@@ -90,6 +90,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
     const [isWebGlAvailable, setIsWebGlAvailable] = useState(true);
     const [globeSize, setGlobeSize] = useState({ width: 0, height: 0 });
+    const globeSizeRef = useRef({ width: 0, height: 0 });
 
     // Material for a clean monochrome sphere (no earth texture)
     const globeMaterial = useMemo(() => {
@@ -265,16 +266,18 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       const node = containerRef.current;
       if (!node) return;
 
-      const updateSize = () => {
-        const { width, height } = node.getBoundingClientRect();
-        setGlobeSize({
-          width: Math.max(0, Math.floor(width)),
-          height: Math.max(0, Math.floor(height)),
-        });
+      const updateSize = (entry?: ResizeObserverEntry) => {
+        const rect = entry?.contentRect ?? node.getBoundingClientRect();
+        const width = Math.max(0, Math.round(rect.width));
+        const height = Math.max(0, Math.round(rect.height));
+        const current = globeSizeRef.current;
+        if (current.width === width && current.height === height) return;
+        globeSizeRef.current = { width, height };
+        setGlobeSize({ width, height });
       };
 
       updateSize();
-      const observer = new ResizeObserver(updateSize);
+      const observer = new ResizeObserver((entries) => updateSize(entries[0]));
       observer.observe(node);
 
       return () => observer.disconnect();
@@ -296,7 +299,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     return (
       <div
         ref={containerRef}
-        className="relative h-64 w-full overflow-hidden rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)]"
+        className="relative h-64 w-full overflow-hidden rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)] min-h-64 max-h-64"
       >
         {showFallback ? (
           <div className="flex h-full w-full items-center justify-center bg-[rgba(240,230,207,0.35)]">

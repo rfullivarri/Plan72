@@ -28,6 +28,7 @@ export type Globe3DHandle = {
 type Globe3DProps = {
   selectedCountry?: string;
   selectedCity?: { name?: string; lat: number; lng: number };
+  locked?: boolean;
 };
 
 type CountryFeature = Feature<Geometry, { name?: string }>;
@@ -48,6 +49,7 @@ const BORDER_COLOR = "#1b1a14";
 const HIGHLIGHT_COLOR = "#b35a2a";
 const IDLE_ROTATION_SPEED = 0.35;
 const DEFAULT_VIEW: PointOfView = { lat: 10, lng: -10, altitude: 1.6 };
+const CITY_VIEW_ALTITUDE = 0.9;
 
 const normalizeName = (value?: string) => value?.trim().toLowerCase() ?? "";
 
@@ -75,9 +77,10 @@ const getFeatureCenter = (
 };
 
 const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
-  ({ selectedCountry, selectedCity }, ref) => {
+  ({ selectedCountry, selectedCity, locked = false }, ref) => {
     const globeRef = useRef<GlobeMethods | undefined>(undefined);
     const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const lockedRef = useRef(locked);
     const [highlightedCountry, setHighlightedCountry] = useState<string | null>(
       null
     );
@@ -142,6 +145,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     }, []);
 
     const scheduleIdleReset = useCallback(() => {
+      if (lockedRef.current) return;
       if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
       resetTimerRef.current = setTimeout(() => updateAutoRotate(true), 1600);
     }, [updateAutoRotate]);
@@ -168,7 +172,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     const focusCity = useCallback(
       (lat: number, lng: number) => {
         updateAutoRotate(false);
-        animateToPoint({ lat, lng, altitude: 1.2 }, 1400);
+        animateToPoint({ lat, lng, altitude: CITY_VIEW_ALTITUDE }, 1400);
         scheduleIdleReset();
       },
       [animateToPoint, scheduleIdleReset, updateAutoRotate]
@@ -177,7 +181,9 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     const resetIdle = useCallback(() => {
       setHighlightedCountry(null);
       animateToPoint(DEFAULT_VIEW, 1200);
-      updateAutoRotate(true);
+      if (!lockedRef.current) {
+        updateAutoRotate(true);
+      }
     }, [animateToPoint, updateAutoRotate]);
 
     useImperativeHandle(
@@ -189,6 +195,16 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     useEffect(() => {
       updateAutoRotate(true);
     }, [updateAutoRotate]);
+
+    useEffect(() => {
+      lockedRef.current = locked;
+      if (locked) {
+        if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+        updateAutoRotate(false);
+      } else {
+        updateAutoRotate(true);
+      }
+    }, [locked, updateAutoRotate]);
 
     useEffect(() => {
       if (selectedCountry) focusCountry(selectedCountry);
@@ -242,6 +258,11 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
         <div className="pointer-events-none absolute left-4 top-4 rounded-full border-2 border-ink/60 bg-[rgba(255,255,255,0.85)] px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-olive">
           Globe
         </div>
+        {locked && (
+          <div className="pointer-events-none absolute right-4 top-4 rounded-full border-2 border-ink bg-[rgba(255,255,255,0.9)] px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-ink">
+            LOCKED
+          </div>
+        )}
       </div>
     );
   }

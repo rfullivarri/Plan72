@@ -2,28 +2,20 @@
 
 import ScenarioSelector from "@/components/ScenarioSelector";
 import { usePlan } from "@/components/PlanContext";
+import type { Globe3DHandle } from "@/components/Globe3D";
 import { MOMENT_CODES, PLAN_LEVELS } from "@/lib/constants";
 import { cityTemplates } from "@/lib/cityTemplates";
 import { geocodeAddress, type GeocodeResult } from "@/lib/geocode";
 import { PlanInput } from "@/lib/schema";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const Globe3D = dynamic(() => import("@/components/Globe3D"), {
   ssr: false,
   loading: () => (
     <div className="flex h-64 w-full items-center justify-center rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)] text-xs font-mono text-olive">
       Loading globe…
-    </div>
-  ),
-});
-
-const MapCorridor = dynamic(() => import("@/components/MapCorridor"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-64 w-full items-center justify-center rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)] text-xs font-mono text-olive">
-      Loading map…
     </div>
   ),
 });
@@ -37,9 +29,9 @@ export default function GeneratorPage() {
   const [latInput, setLatInput] = useState(input.start.lat.toString());
   const [lngInput, setLngInput] = useState(input.start.lng.toString());
   const [labelInput, setLabelInput] = useState(input.start.label ?? "");
-  const [activeStep, setActiveStep] = useState(1);
   const [hasResolvedLocation, setHasResolvedLocation] = useState(false);
   const [resolvedCenter, setResolvedCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const globeRef = useRef<Globe3DHandle | null>(null);
 
   useEffect(() => {
     setLatInput(input.start.lat.toString());
@@ -47,8 +39,14 @@ export default function GeneratorPage() {
     setLabelInput(input.start.label ?? "");
   }, [input.start.lat, input.start.lng, input.start.label]);
 
+  const resetResolvedLocation = () => {
+    setHasResolvedLocation(false);
+    setResolvedCenter(null);
+  };
+
   const handleCityChange = (value: string) => {
     const nextCity = value || "BCN";
+    resetResolvedLocation();
 
     if (cityTemplates[nextCity]) {
       loadCityPreset(nextCity, {
@@ -65,12 +63,18 @@ export default function GeneratorPage() {
   };
 
   const handleBCNPreset = () => {
+    resetResolvedLocation();
     const sampleNodes: PlanInput["resourceNodes"] = [
       { id: "N0", label: "Home", lat: 41.39, lng: 2.16, types: ["A", "C", "E"] },
       { id: "N1", label: "Clinic", lat: 41.4, lng: 2.18, types: ["D", "A"] },
     ];
 
     loadCityPreset("BCN", { scenarios: ["NUK"], moment: "POST", level: "STANDARD", resourceNodes: sampleNodes });
+  };
+
+  const handleCountryChange = (value: string) => {
+    resetResolvedLocation();
+    updateInput("country", value);
   };
 
   const handleApplyLocation = (result?: GeocodeResult) => {
@@ -129,7 +133,32 @@ export default function GeneratorPage() {
     setLocationStatus("Coordenadas aplicadas.");
   };
 
-  const showGlobe = !hasResolvedLocation && activeStep <= 2;
+  const cityPreset = cityTemplates[input.city];
+  const cityFocus = useMemo(() => {
+    if (resolvedCenter) return resolvedCenter;
+    if (cityPreset?.defaults?.start) {
+      return { lat: cityPreset.defaults.start.lat, lng: cityPreset.defaults.start.lng };
+    }
+    return null;
+  }, [cityPreset, resolvedCenter]);
+
+  useEffect(() => {
+    const globe = globeRef.current;
+    if (!globe) return;
+    if (hasResolvedLocation && resolvedCenter) {
+      globe.focusCity(resolvedCenter.lat, resolvedCenter.lng);
+      return;
+    }
+    if (cityFocus) {
+      globe.focusCity(cityFocus.lat, cityFocus.lng);
+      return;
+    }
+    if (input.country.trim()) {
+      globe.focusCountry(input.country);
+      return;
+    }
+    globe.resetIdle();
+  }, [cityFocus, hasResolvedLocation, input.country, resolvedCenter]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10 space-y-8">
@@ -152,252 +181,196 @@ export default function GeneratorPage() {
         </div>
       </header>
 
-      <section className="grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
-        <div className="space-y-5">
-          <div className="card-frame p-5 space-y-4" onClick={() => setActiveStep(1)}>
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Step 1</p>
-              <h2 className="font-display text-2xl">Country</h2>
-              <p className="text-sm text-ink/70">Selecciona tu país de referencia.</p>
-            </div>
-            <label className="space-y-1 text-sm font-semibold">
-              Country
-              <input
-                className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
-                placeholder="Spain"
-                value={input.country}
-                onFocus={() => setActiveStep(1)}
-                onChange={(e) => updateInput("country", e.target.value)}
-              />
-            </label>
+      <section className="space-y-6">
+        <div className="card-frame p-5 space-y-4">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Step 1</p>
+            <h2 className="font-display text-2xl">Location onboarding</h2>
+            <p className="text-sm text-ink/70">Define país, ciudad y una dirección/pin para anclar el plan.</p>
           </div>
+          <div className="grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
+            <div className="space-y-5">
+              <label className="space-y-1 text-sm font-semibold">
+                Country
+                <input
+                  className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
+                  placeholder="Spain"
+                  value={input.country}
+                  onChange={(e) => handleCountryChange(e.target.value)}
+                />
+              </label>
+              <label className="space-y-1 text-sm font-semibold">
+                City name
+                <input
+                  className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
+                  value={input.city}
+                  onChange={(e) => handleCityChange(e.target.value)}
+                />
+              </label>
+              <div className="grid gap-3">
+                <label className="space-y-1 text-sm font-semibold">
+                  Address / POI
+                  <input
+                    className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
+                    placeholder="Carrer Aragó 200, BCN"
+                    value={addressQuery}
+                    onChange={(e) => {
+                      resetResolvedLocation();
+                      setAddressQuery(e.target.value);
+                    }}
+                  />
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" className="ink-button" onClick={handleSearchLocation}>
+                    Use this location
+                  </button>
+                  <button type="button" className="ink-button" onClick={handleBCNPreset}>
+                    Load preset
+                  </button>
+                </div>
+                {locationStatus && <p className="text-xs text-olive font-mono">{locationStatus}</p>}
+                {geocodeResults.length > 0 && (
+                  <div className="rounded-lg border-2 border-dashed border-ink/60 bg-[rgba(240,245,238,0.7)] p-3 text-sm">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Suggestions</p>
+                    <ul className="mt-2 space-y-2">
+                      {geocodeResults.map((result) => (
+                        <li
+                          key={`${result.displayName}-${result.lat}-${result.lng}`}
+                          className="flex items-center justify-between gap-2"
+                        >
+                          <div>
+                            <p className="font-semibold">{result.displayName}</p>
+                            <p className="text-xs text-ink/70">
+                              {result.lat.toFixed(4)}, {result.lng.toFixed(4)}
+                            </p>
+                          </div>
+                          <button type="button" className="ink-button" onClick={() => handleApplyLocation(result)}>
+                            Use this location
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              <details className="rounded-xl border-2 border-dashed border-ink/40 p-3">
+                <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.2em] text-olive">
+                  Pin / coordinates
+                </summary>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-1 text-sm font-semibold">
+                    Label
+                    <input
+                      className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm"
+                      value={labelInput}
+                      onChange={(e) => setLabelInput(e.target.value)}
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm font-semibold">
+                    City name
+                    <input
+                      className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm"
+                      value={input.city}
+                      onChange={(e) => handleCityChange(e.target.value)}
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm font-semibold">
+                    Lat
+                    <input
+                      type="number"
+                      className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm"
+                      value={latInput}
+                      onChange={(e) => setLatInput(e.target.value)}
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm font-semibold">
+                    Lng
+                    <input
+                      type="number"
+                      className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm"
+                      value={lngInput}
+                      onChange={(e) => setLngInput(e.target.value)}
+                    />
+                  </label>
+                </div>
+                <button type="button" className="ink-button mt-3" onClick={handleApplyCoordinates}>
+                  Use coordinates
+                </button>
+              </details>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Globe3D</p>
+                <p className="text-sm text-ink/70">Vista global sincronizada con tu selección.</p>
+              </div>
+              <Globe3D ref={globeRef} locked={hasResolvedLocation} />
+            </div>
+          </div>
+        </div>
 
-          <div className="card-frame p-5 space-y-4" onClick={() => setActiveStep(2)}>
+        <div className="card-frame p-5 space-y-4">
+          <div className="flex items-center justify-between gap-2">
             <div>
               <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Step 2</p>
-              <h2 className="font-display text-2xl">City</h2>
-              <p className="text-sm text-ink/70">Define la ciudad base para el corredor.</p>
+              <h2 className="font-display text-2xl">Catastrophes</h2>
+              <p className="text-sm text-ink/70">Multi-select de escenarios activos.</p>
             </div>
+            <span className="rounded-full border-2 border-ink px-3 py-1 text-xs font-mono bg-[rgba(179,90,42,0.1)]">
+              TVA CLOCK 72:00
+            </span>
+          </div>
+          <ScenarioSelector showHeader={false} />
+        </div>
+
+        <div className="card-frame p-5 space-y-4">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Step 3</p>
+            <h2 className="font-display text-2xl">Level · Moment · Team size</h2>
+            <p className="text-sm text-ink/70">Compacta el set operativo.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
             <label className="space-y-1 text-sm font-semibold">
-              City name
-              <input
+              Level
+              <select
+                className="w-full rounded-lg border-2 border-ink bg-[rgba(245,232,204,0.8)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
+                value={input.level}
+                onChange={(e) => updateInput("level", e.target.value as (typeof PLAN_LEVELS)[number])}
+              >
+                {PLAN_LEVELS.map((level) => (
+                  <option key={level} value={level}>
+                    {level}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1 text-sm font-semibold">
+              Moment
+              <select
                 className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
-                value={input.city}
-                onFocus={() => setActiveStep(2)}
-                onChange={(e) => handleCityChange(e.target.value)}
+                value={input.moment}
+                onChange={(e) => updateInput("moment", e.target.value as (typeof MOMENT_CODES)[number])}
+              >
+                {MOMENT_CODES.map((code) => (
+                  <option key={code} value={code}>
+                    {code}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1 text-sm font-semibold">
+              Team size
+              <input
+                type="number"
+                min={1}
+                className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
+                value={input.peopleCount}
+                onChange={(e) => updateInput("peopleCount", parseInt(e.target.value, 10) || 0)}
               />
             </label>
           </div>
-
-          <div className="card-frame p-5 space-y-4" onClick={() => setActiveStep(3)}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Step 3</p>
-                <h2 className="font-display text-2xl">Address or pin</h2>
-                <p className="text-sm text-ink/70">Usa dirección/POI o fija un pin con coordenadas.</p>
-              </div>
-            </div>
-            <div className="grid gap-3">
-              <label className="space-y-1 text-sm font-semibold">
-                Address / POI
-                <input
-                  className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
-                  placeholder="Carrer Aragó 200, BCN"
-                  value={addressQuery}
-                  onFocus={() => setActiveStep(3)}
-                  onChange={(e) => setAddressQuery(e.target.value)}
-                />
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <button type="button" className="ink-button" onClick={handleSearchLocation}>
-                  Use this location
-                </button>
-                <button type="button" className="ink-button" onClick={handleBCNPreset}>
-                  Load preset
-                </button>
-              </div>
-              {locationStatus && <p className="text-xs text-olive font-mono">{locationStatus}</p>}
-              {geocodeResults.length > 0 && (
-                <div className="rounded-lg border-2 border-dashed border-ink/60 bg-[rgba(240,245,238,0.7)] p-3 text-sm">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Suggestions</p>
-                  <ul className="mt-2 space-y-2">
-                    {geocodeResults.map((result) => (
-                      <li
-                        key={`${result.displayName}-${result.lat}-${result.lng}`}
-                        className="flex items-center justify-between gap-2"
-                      >
-                        <div>
-                          <p className="font-semibold">{result.displayName}</p>
-                          <p className="text-xs text-ink/70">
-                            {result.lat.toFixed(4)}, {result.lng.toFixed(4)}
-                          </p>
-                        </div>
-                        <button type="button" className="ink-button" onClick={() => handleApplyLocation(result)}>
-                          Use this location
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-            <details
-              className="rounded-xl border-2 border-dashed border-ink/40 p-3"
-              onToggle={() => setActiveStep(3)}
-            >
-              <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.2em] text-olive">
-                Pin / coordinates
-              </summary>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <label className="space-y-1 text-sm font-semibold">
-                  Label
-                  <input
-                    className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm"
-                    value={labelInput}
-                    onChange={(e) => setLabelInput(e.target.value)}
-                  />
-                </label>
-                <label className="space-y-1 text-sm font-semibold">
-                  City name
-                  <input
-                    className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm"
-                    value={input.city}
-                    onChange={(e) => handleCityChange(e.target.value)}
-                  />
-                </label>
-                <label className="space-y-1 text-sm font-semibold">
-                  Lat
-                  <input
-                    type="number"
-                    className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm"
-                    value={latInput}
-                    onChange={(e) => setLatInput(e.target.value)}
-                  />
-                </label>
-                <label className="space-y-1 text-sm font-semibold">
-                  Lng
-                  <input
-                    type="number"
-                    className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm"
-                    value={lngInput}
-                    onChange={(e) => setLngInput(e.target.value)}
-                  />
-                </label>
-              </div>
-              <button type="button" className="ink-button mt-3" onClick={handleApplyCoordinates}>
-                Use coordinates
-              </button>
-            </details>
-          </div>
-
-          <div className="card-frame p-5 space-y-4" onClick={() => setActiveStep(4)}>
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Step 4</p>
-                <h2 className="font-display text-2xl">Catastrophes</h2>
-                <p className="text-sm text-ink/70">Multi-select de escenarios activos.</p>
-              </div>
-              <span className="rounded-full border-2 border-ink px-3 py-1 text-xs font-mono bg-[rgba(179,90,42,0.1)]">
-                TVA CLOCK 72:00
-              </span>
-            </div>
-            <div onClick={() => setActiveStep(4)} onFocus={() => setActiveStep(4)}>
-              <ScenarioSelector showHeader={false} />
-            </div>
-          </div>
-
-          <div className="card-frame p-5 space-y-4" onClick={() => setActiveStep(5)}>
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Step 5</p>
-              <h2 className="font-display text-2xl">Level · Moment · Team size</h2>
-              <p className="text-sm text-ink/70">Compacta el set operativo.</p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="space-y-1 text-sm font-semibold">
-                Level
-                <select
-                  className="w-full rounded-lg border-2 border-ink bg-[rgba(245,232,204,0.8)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
-                  value={input.level}
-                  onFocus={() => setActiveStep(5)}
-                  onChange={(e) => updateInput("level", e.target.value as (typeof PLAN_LEVELS)[number])}
-                >
-                  {PLAN_LEVELS.map((level) => (
-                    <option key={level} value={level}>
-                      {level}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="space-y-1 text-sm font-semibold">
-                Moment
-                <select
-                  className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
-                  value={input.moment}
-                  onFocus={() => setActiveStep(5)}
-                  onChange={(e) => updateInput("moment", e.target.value as (typeof MOMENT_CODES)[number])}
-                >
-                  {MOMENT_CODES.map((code) => (
-                    <option key={code} value={code}>
-                      {code}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="space-y-1 text-sm font-semibold">
-                Team size
-                <input
-                  type="number"
-                  min={1}
-                  className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
-                  value={input.peopleCount}
-                  onFocus={() => setActiveStep(5)}
-                  onChange={(e) => updateInput("peopleCount", parseInt(e.target.value, 10) || 0)}
-                />
-              </label>
-            </div>
-          </div>
-
-          <ResourceNodeEditor
-            newNode={newNode}
-            setNewNode={setNewNode}
-            resourceNodes={input.resourceNodes}
-            onActivate={() => setActiveStep(6)}
-          />
         </div>
 
-        <div className="relative space-y-4 lg:pl-6">
-          <div className="card-frame p-5 space-y-4 sticky top-6">
-            <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Visualization</p>
-              <h2 className="font-display text-2xl">{showGlobe ? "Globe3D" : "2D Map"}</h2>
-              <p className="text-sm text-ink/70">
-                {showGlobe ? "Vista global para país y ciudad." : "Vista de ruta para dirección y escenarios."}
-              </p>
-            </div>
-            <div className="relative h-64 w-full overflow-hidden">
-              <div
-                className={`absolute inset-0 origin-center transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
-                  showGlobe ? "opacity-100 scale-100" : "pointer-events-none opacity-0 scale-90"
-                }`}
-              >
-                <Globe3D />
-              </div>
-              <div
-                className={`absolute inset-0 origin-center transition-all duration-700 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
-                  showGlobe ? "pointer-events-none opacity-0 scale-110" : "opacity-100 scale-100"
-                }`}
-              >
-                <MapCorridor
-                  embedded
-                  showHeader={false}
-                  showSummary={false}
-                  initialCenter={resolvedCenter ?? undefined}
-                  initialZoom={13}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        <ResourceNodeEditor newNode={newNode} setNewNode={setNewNode} resourceNodes={input.resourceNodes} />
       </section>
 
       <section className="flex flex-wrap items-center justify-between gap-3">
@@ -413,12 +386,10 @@ function ResourceNodeEditor({
   newNode,
   setNewNode,
   resourceNodes,
-  onActivate,
 }: {
   newNode: { label: string; lat: string; lng: string; types: string };
   setNewNode: (node: { label: string; lat: string; lng: string; types: string }) => void;
   resourceNodes: PlanInput["resourceNodes"];
-  onActivate?: () => void;
 }) {
   const { addResourceNode, updateResourceNode, removeResourceNode } = usePlan();
 
@@ -438,9 +409,9 @@ function ResourceNodeEditor({
   };
 
   return (
-    <details className="card-frame p-5 space-y-3" onToggle={onActivate} onClick={onActivate}>
+    <details className="card-frame p-5 space-y-3">
       <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.25em] text-olive">
-        Step 6 · Advanced (resource nodes optional)
+        Step 4 · Advanced (resource nodes optional)
       </summary>
       <div className="space-y-3">
         <div className="flex items-center justify-between">

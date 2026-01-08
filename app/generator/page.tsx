@@ -31,6 +31,7 @@ export default function GeneratorPage() {
   const [labelInput, setLabelInput] = useState(input.start.label ?? "");
   const [hasResolvedLocation, setHasResolvedLocation] = useState(false);
   const [resolvedCenter, setResolvedCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [lowMotionEnabled, setLowMotionEnabled] = useState(false);
   const globeRef = useRef<Globe3DHandle | null>(null);
 
   useEffect(() => {
@@ -303,7 +304,16 @@ export default function GeneratorPage() {
                 <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Globe3D</p>
                 <p className="text-sm text-ink/70">Vista global sincronizada con tu selección.</p>
               </div>
-              <Globe3D ref={globeRef} locked={hasResolvedLocation} />
+              <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.2em] text-olive">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-ink"
+                  checked={lowMotionEnabled}
+                  onChange={(e) => setLowMotionEnabled(e.target.checked)}
+                />
+                Low Ink / Low Motion
+              </label>
+              <Globe3D ref={globeRef} locked={hasResolvedLocation} lowMotion={lowMotionEnabled} />
             </div>
           </div>
         </div>

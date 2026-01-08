@@ -80,6 +80,7 @@ const getFeatureCenter = (
 const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
   ({ selectedCountry, selectedCity, locked = false, lowMotion = false }, ref) => {
     const globeRef = useRef<GlobeMethods | undefined>(undefined);
+    const containerRef = useRef<HTMLDivElement | null>(null);
     const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lockedRef = useRef(locked);
     const lowMotionRef = useRef(lowMotion);
@@ -88,6 +89,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     );
     const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
     const [isWebGlAvailable, setIsWebGlAvailable] = useState(true);
+    const [globeSize, setGlobeSize] = useState({ width: 0, height: 0 });
 
     // Material for a clean monochrome sphere (no earth texture)
     const globeMaterial = useMemo(() => {
@@ -260,6 +262,25 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     }, []);
 
     useEffect(() => {
+      const node = containerRef.current;
+      if (!node) return;
+
+      const updateSize = () => {
+        const { width, height } = node.getBoundingClientRect();
+        setGlobeSize({
+          width: Math.max(0, Math.floor(width)),
+          height: Math.max(0, Math.floor(height)),
+        });
+      };
+
+      updateSize();
+      const observer = new ResizeObserver(updateSize);
+      observer.observe(node);
+
+      return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
       return () => {
         if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
       };
@@ -273,7 +294,10 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     const showFallback = prefersReducedMotion || !isWebGlAvailable;
 
     return (
-      <div className="relative h-64 w-full overflow-hidden rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)]">
+      <div
+        ref={containerRef}
+        className="relative h-64 w-full overflow-hidden rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)]"
+      >
         {showFallback ? (
           <div className="flex h-full w-full items-center justify-center bg-[rgba(240,230,207,0.35)]">
             <svg
@@ -302,10 +326,12 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
               <circle cx="124" cy="84" r="6" fill="#b35a2a" />
             </svg>
           </div>
-        ) : (
+        ) : globeSize.width > 0 && globeSize.height > 0 ? (
           <Globe
             ref={globeRef}
             backgroundColor="rgba(0,0,0,0)"
+            width={globeSize.width}
+            height={globeSize.height}
             globeMaterial={globeMaterial}
             // Polygons (country outlines)
             polygonsData={countries}
@@ -331,7 +357,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
               animateToPoint(DEFAULT_VIEW, 0);
             }}
           />
-        )}
+        ) : null}
         <div className="pointer-events-none absolute left-4 top-4 rounded-full border-2 border-ink/60 bg-[rgba(255,255,255,0.85)] px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-olive">
           Globe
         </div>

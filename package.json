@@ -13,7 +13,11 @@
     "maplibre-gl": "file:lib/maplibre-gl",
     "next": "14.2.5",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "react-globe.gl": "2.27.0",
+    "three": "0.167.1",
+    "topojson-client": "3.1.0",
+    "world-atlas": "2.0.2"
   },
   "devDependencies": {
     "@types/node": "22.5.4",

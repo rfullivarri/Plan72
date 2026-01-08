@@ -77,7 +77,26 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(({ selectedCountry, sele
     return collection.features as CountryFeature[];
   }, []);
 
-  const globeMaterial = useMemo(() => new THREE.MeshPhongMaterial({ color: GLOBE_COLOR }), []);
+  const globeMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: GLOBE_COLOR,
+        roughness: 0.9,
+        metalness: 0,
+      }),
+    []
+  );
+
+  const countryLookup = useMemo(() => {
+    const lookup = new Map<string, CountryFeature>();
+    countries.forEach((country) => {
+      const normalized = normalizeName(country.properties?.name);
+      if (normalized) {
+        lookup.set(normalized, country);
+      }
+    });
+    return lookup;
+  }, [countries]);
 
   const updateAutoRotate = useCallback((enabled: boolean) => {
     const controls = globeRef.current?.controls();
@@ -103,7 +122,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(({ selectedCountry, sele
     (countryName: string) => {
       const normalized = normalizeName(countryName);
       if (!normalized) return;
-      const match = countries.find((country) => normalizeName(country.properties?.name) === normalized);
+      const match = countryLookup.get(normalized);
       if (!match) return;
       const center = getFeatureCenter(match);
       if (!center) return;
@@ -112,7 +131,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(({ selectedCountry, sele
       animateToPoint({ lat: center.lat, lng: center.lng, altitude: 1.3 }, 1500);
       scheduleIdleReset();
     },
-    [animateToPoint, countries, scheduleIdleReset, updateAutoRotate]
+    [animateToPoint, countryLookup, scheduleIdleReset, updateAutoRotate]
   );
 
   const focusCity = useCallback(
@@ -176,6 +195,10 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(({ selectedCountry, sele
         }
         polygonAltitude={0.005}
         onGlobeReady={() => {
+          const controls = globeRef.current?.controls();
+          if (controls) {
+            controls.enablePan = false;
+          }
           updateAutoRotate(true);
           animateToPoint(DEFAULT_VIEW, 0);
         }}

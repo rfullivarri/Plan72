@@ -1,13 +1,21 @@
 "use client";
 
 import CardStack from "@/components/CardStack";
-import Globe3D from "@/components/Globe3D";
 import MascotPanel from "@/components/MascotPanel";
 import PdfExportButton from "@/components/PdfExportButton";
 import PrintDeck from "@/components/PrintDeck";
 import { usePlan } from "@/components/PlanContext";
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
+
+const Globe3D = dynamic(() => import("@/components/Globe3D"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-64 w-full items-center justify-center rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)] text-xs font-mono text-olive">
+      Loading globe…
+    </div>
+  ),
+});
 
 const MapCorridor = dynamic(() => import("@/components/MapCorridor"), {
   ssr: false,

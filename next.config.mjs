@@ -14,7 +14,6 @@ const nextConfig = {
   webpack: (config) => {
     config.resolve.alias = {
       ...(config.resolve.alias ?? {}),
-      "three/tsl": path.join(__dirname, "lib/three-tsl-shim.ts"),
     };
     return config;
   },

@@ -2,6 +2,8 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 
+import type { MapLibreMap, MapLibreMarker, MapLibreModule } from "@/lib/maplibre";
+
 export type Globe3DHandle = {
   focusCountry: (countryCode: string) => void;
   focusCity: (lat: number, lng: number) => void;
@@ -16,50 +18,12 @@ const MAPLIBRE_STYLE = "https://demotiles.maplibre.org/style.json";
 const MAPLIBRE_SCRIPT = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js";
 const MAPLIBRE_CSS = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css";
 
-type MapLibreMap = {
-  on: (event: string, callback: () => void) => void;
-  remove: () => void;
-  resize: () => void;
-  flyTo: (options: { center: [number, number]; zoom?: number; speed?: number; curve?: number; essential?: boolean }) => void;
-  jumpTo: (options: { center: [number, number]; zoom?: number }) => void;
-  setFog?: (options: Record<string, unknown>) => void;
-};
-
-type MapLibreMarker = {
-  setLngLat: (coord: [number, number]) => MapLibreMarker;
-  addTo: (map: MapLibreMap) => MapLibreMarker;
-  remove: () => void;
-};
-
-type MapLibreModule = {
-  __isStub?: boolean;
-  Map: new (options: {
-    container: HTMLElement;
-    style: string;
-    center: [number, number];
-    zoom: number;
-    projection?: string;
-    attributionControl?: boolean;
-  }) => MapLibreMap;
-  Marker: new (options?: { element?: HTMLElement }) => MapLibreMarker;
-};
-
-type MapLibreGlobal = MapLibreModule | { default?: MapLibreModule };
-
-declare global {
-  interface Window {
-    maplibregl?: MapLibreGlobal;
-  }
-}
-
 let maplibrePromise: Promise<MapLibreModule> | null = null;
 
-const resolveMapLibre = (module: MapLibreGlobal | undefined) => {
-  if (!module) return null;
-  return "default" in module && module.default ? module.default : module;
+const getGlobalMapLibre = () => {
+  if (window.maplibregl) return window.maplibregl;
+  return null;
 };
-
-const getGlobalMapLibre = () => resolveMapLibre(window.maplibregl);
 
 const loadMapLibre = async () => {
   if (typeof window === "undefined") {

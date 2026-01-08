@@ -11,6 +11,7 @@ const nextConfig = {
   output: "export",
   basePath: "/Plan72",
   assetPrefix: "/Plan72/",
+  trailingSlash: true,
   webpack: (config) => {
     config.resolve.alias = {
       ...(config.resolve.alias ?? {}),

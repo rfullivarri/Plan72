@@ -44,15 +44,22 @@ type MapLibreModule = {
   Marker: new (options?: { element?: HTMLElement }) => MapLibreMarker;
 };
 
+type MapLibreGlobal = MapLibreModule | { default?: MapLibreModule };
+
 declare global {
   interface Window {
-    maplibregl?: MapLibreModule;
+    maplibregl?: MapLibreGlobal;
   }
 }
 
 let maplibrePromise: Promise<MapLibreModule> | null = null;
 
-const getGlobalMapLibre = () => window.maplibregl;
+const resolveMapLibre = (module: MapLibreGlobal | undefined) => {
+  if (!module) return null;
+  return "default" in module && module.default ? module.default : module;
+};
+
+const getGlobalMapLibre = () => resolveMapLibre(window.maplibregl);
 
 const loadMapLibre = async () => {
   if (typeof window === "undefined") {

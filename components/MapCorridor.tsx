@@ -76,6 +76,8 @@ type MapLibreModule = {
   LngLatBounds: new (sw: [number, number], ne: [number, number]) => MapLibreLngLatBounds;
 };
 
+type MapLibreGlobal = MapLibreModule | { default?: MapLibreModule };
+
 let maplibrePromise: Promise<MapLibreModule> | null = null;
 
 type MapCorridorProps = {
@@ -95,7 +97,12 @@ const loadMapLibre = async () => {
     throw new Error("MapLibre is only available in the browser.");
   }
 
-  const globalMapLibre = (window as Window & { maplibregl?: MapLibreModule }).maplibregl;
+  const resolveMapLibre = (module: MapLibreGlobal | undefined) => {
+    if (!module) return null;
+    return "default" in module && module.default ? module.default : module;
+  };
+
+  const globalMapLibre = resolveMapLibre((window as Window & { maplibregl?: MapLibreGlobal }).maplibregl);
   if (globalMapLibre) {
     return globalMapLibre;
   }
@@ -113,7 +120,7 @@ const loadMapLibre = async () => {
       const existingScript = document.getElementById("maplibre-gl-js") as HTMLScriptElement | null;
       if (existingScript) {
         existingScript.addEventListener("load", () => {
-          const globalMapLibre = (window as Window & { maplibregl?: MapLibreModule }).maplibregl;
+          const globalMapLibre = resolveMapLibre((window as Window & { maplibregl?: MapLibreGlobal }).maplibregl);
           if (globalMapLibre) {
             resolve(globalMapLibre);
           } else {
@@ -129,7 +136,7 @@ const loadMapLibre = async () => {
       script.src = MAPLIBRE_SCRIPT;
       script.async = true;
       script.onload = () => {
-        const globalMapLibre = (window as Window & { maplibregl?: MapLibreModule }).maplibregl;
+        const globalMapLibre = resolveMapLibre((window as Window & { maplibregl?: MapLibreGlobal }).maplibregl);
         if (globalMapLibre) {
           resolve(globalMapLibre);
         } else {

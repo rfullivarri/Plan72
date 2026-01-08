@@ -21,7 +21,8 @@ const MAPLIBRE_CSS = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css";
 let maplibrePromise: Promise<MapLibreModule> | null = null;
 
 const getGlobalMapLibre = () => {
-  if (window.maplibregl) return window.maplibregl;
+  if (window.maplibregl)
+    return (window as unknown as Window & { maplibregl: MapLibreModule }).maplibregl;
   return null;
 };
 

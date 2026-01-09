@@ -4,6 +4,7 @@ export const dynamic = "force-static";
 
 import ScenarioSelector from "@/components/ScenarioSelector";
 import { usePlan } from "@/components/PlanContext";
+import Globe3D from "@/components/Globe3D";
 import type { Globe3DHandle } from "@/components/Globe3D";
 import { MOMENT_CODES, PLAN_LEVELS } from "@/lib/constants";
 import { cityTemplates } from "@/lib/cityTemplates";
@@ -15,18 +16,8 @@ import {
 } from "@/lib/countryData";
 import { geocodeAddress, geocodeCitySuggestions, type GeocodeResult } from "@/lib/geocode";
 import { PlanInput } from "@/lib/schema";
-import dynamicImport from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-
-const Globe3D = dynamicImport(() => import("@/components/Globe3D"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-64 w-full items-center justify-center rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)] text-xs font-mono text-olive">
-      Loading globe…
-    </div>
-  ),
-});
 
 export default function GeneratorPage() {
   const { input, updateInput, loadCityPreset } = usePlan();

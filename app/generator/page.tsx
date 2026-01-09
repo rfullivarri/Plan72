@@ -5,7 +5,13 @@ import { usePlan } from "@/components/PlanContext";
 import type { Globe3DHandle } from "@/components/Globe3D";
 import { MOMENT_CODES, PLAN_LEVELS } from "@/lib/constants";
 import { cityTemplates } from "@/lib/cityTemplates";
-import { geocodeAddress, type GeocodeResult } from "@/lib/geocode";
+import {
+  getCountryOptions,
+  normalizeCountryInput,
+  resolveCountryIsoCode,
+  type CountryOption,
+} from "@/lib/countryData";
+import { geocodeAddress, geocodeCitySuggestions, type GeocodeResult } from "@/lib/geocode";
 import { PlanInput } from "@/lib/schema";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -31,10 +37,15 @@ export default function GeneratorPage() {
   const [labelInput, setLabelInput] = useState(input.start.label ?? "");
   const [hasResolvedLocation, setHasResolvedLocation] = useState(false);
   const [resolvedCenter, setResolvedCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [citySuggestions, setCitySuggestions] = useState<GeocodeResult[]>([]);
+  const [cityStatus, setCityStatus] = useState<string | null>(null);
   // Wizard state machine for Step 1: country -> city -> address -> confirmed.
   const [stage, setStage] = useState<"country" | "city" | "address" | "confirmed">("country");
   const globeRef = useRef<Globe3DHandle | null>(null);
   const countryDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cityDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cityRequestRef = useRef(0);
+  const countryOptions = useMemo(() => getCountryOptions(), []);
 
   useEffect(() => {
     setLatInput(input.start.lat.toString());
@@ -62,6 +73,8 @@ export default function GeneratorPage() {
   const handleCityChange = (value: string) => {
     const nextCity = value || "BCN";
     resetResolvedLocation();
+    setCitySuggestions([]);
+    setCityStatus(null);
 
     if (cityTemplates[nextCity]) {
       loadCityPreset(nextCity, {
@@ -90,6 +103,7 @@ export default function GeneratorPage() {
   const handleCountryChange = (value: string) => {
     resetResolvedLocation();
     updateInput("country", value);
+    resetCityAndAddress();
   };
 
   const handleConfirmCountry = () => {
@@ -201,6 +215,25 @@ export default function GeneratorPage() {
     setLocationStatus("Coordenadas aplicadas.");
   };
 
+  const handleSelectCountry = (option: CountryOption) => {
+    updateInput("country", option.name);
+    resetCityAndAddress();
+    globeRef.current?.focusCountry(option.name);
+  };
+
+  const handleSelectCitySuggestion = (result: GeocodeResult) => {
+    const label = result.displayName.split(",")[0]?.trim() || input.city || "City";
+    updateInput("city", label);
+    updateInput("start", { lat: result.lat, lng: result.lng, label });
+    setLatInput(result.lat.toString());
+    setLngInput(result.lng.toString());
+    setLabelInput(label);
+    setResolvedCenter({ lat: result.lat, lng: result.lng });
+    setHasResolvedLocation(true);
+    setCitySuggestions([]);
+    setCityStatus("Ciudad seleccionada.");
+  };
+
   const cityPreset = cityTemplates[input.city];
   const cityFocus = useMemo(() => {
     if (resolvedCenter) return resolvedCenter;
@@ -209,6 +242,20 @@ export default function GeneratorPage() {
     }
     return null;
   }, [cityPreset, resolvedCenter]);
+
+  const countrySuggestions = useMemo(() => {
+    if (stage !== "country") return [];
+    const normalizedQuery = normalizeCountryInput(input.country);
+    if (!normalizedQuery) return [];
+    const matches = countryOptions.filter((option) => option.normalizedName.includes(normalizedQuery));
+    matches.sort((a, b) => {
+      const aStarts = a.normalizedName.startsWith(normalizedQuery);
+      const bStarts = b.normalizedName.startsWith(normalizedQuery);
+      if (aStarts === bStarts) return a.name.localeCompare(b.name);
+      return aStarts ? -1 : 1;
+    });
+    return matches.slice(0, 6);
+  }, [countryOptions, input.country, stage]);
 
   useEffect(() => {
     const globe = globeRef.current;
@@ -255,6 +302,49 @@ export default function GeneratorPage() {
     };
   }, [input.country, stage]);
 
+  useEffect(() => {
+    if (stage !== "city") {
+      setCitySuggestions([]);
+      setCityStatus(null);
+      return;
+    }
+    const query = input.city.trim();
+    if (!query || query.length < 2 || !input.country.trim()) {
+      setCitySuggestions([]);
+      setCityStatus(null);
+      return;
+    }
+
+    if (cityDebounceRef.current) {
+      clearTimeout(cityDebounceRef.current);
+    }
+
+    const requestId = ++cityRequestRef.current;
+    cityDebounceRef.current = setTimeout(async () => {
+      setCityStatus("Buscando ciudades…");
+      try {
+        const isoCode = resolveCountryIsoCode(input.country)?.toLowerCase();
+        const results = await geocodeCitySuggestions(`${query}, ${input.country}`, {
+          countryCodes: isoCode,
+          limit: 6,
+        });
+        if (requestId !== cityRequestRef.current) return;
+        setCitySuggestions(results);
+        setCityStatus(results.length ? null : "No se encontraron ciudades.");
+      } catch {
+        if (requestId !== cityRequestRef.current) return;
+        setCityStatus("No se pudieron cargar sugerencias.");
+        setCitySuggestions([]);
+      }
+    }, 350);
+
+    return () => {
+      if (cityDebounceRef.current) {
+        clearTimeout(cityDebounceRef.current);
+      }
+    };
+  }, [input.city, input.country, stage]);
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-10 space-y-8">
       <header id="how" className="manual-surface relative overflow-hidden px-6 py-8 sm:px-8">
@@ -297,6 +387,33 @@ export default function GeneratorPage() {
                   onKeyDown={(event) => handleStageKeyDown(event, handleConfirmCountry)}
                 />
               </label>
+              {stage === "country" && countrySuggestions.length > 0 && (
+                <div className="rounded-lg border-2 border-dashed border-ink/60 bg-[rgba(240,245,238,0.7)] p-3 text-sm">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Suggestions</p>
+                  <ul className="mt-2 space-y-2">
+                    {countrySuggestions.map((option) => (
+                      <li
+                        key={option.name}
+                        className="flex items-center justify-between gap-2"
+                      >
+                        <div>
+                          <p className="font-semibold">{option.name}</p>
+                          <p className="text-xs text-ink/70">
+                            {option.lat.toFixed(2)}, {option.lng.toFixed(2)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="ink-button"
+                          onClick={() => handleSelectCountry(option)}
+                        >
+                          Use country
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 {stage === "country" ? (
                   <button type="button" className="ink-button" onClick={handleConfirmCountry}>
@@ -327,6 +444,36 @@ export default function GeneratorPage() {
                     onKeyDown={(event) => handleStageKeyDown(event, handleConfirmCity)}
                   />
                 </label>
+                {stage === "city" && citySuggestions.length > 0 && (
+                  <div className="rounded-lg border-2 border-dashed border-ink/60 bg-[rgba(240,245,238,0.7)] p-3 text-sm">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Cities</p>
+                    <ul className="mt-2 space-y-2">
+                      {citySuggestions.map((result) => (
+                        <li
+                          key={`${result.displayName}-${result.lat}-${result.lng}`}
+                          className="flex items-center justify-between gap-2"
+                        >
+                          <div>
+                            <p className="font-semibold">{result.displayName}</p>
+                            <p className="text-xs text-ink/70">
+                              {result.lat.toFixed(4)}, {result.lng.toFixed(4)}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className="ink-button"
+                            onClick={() => handleSelectCitySuggestion(result)}
+                          >
+                            Use city
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {stage === "city" && cityStatus && (
+                  <p className="text-xs text-olive font-mono">{cityStatus}</p>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {stage === "city" ? (
                     <button type="button" className="ink-button" onClick={handleConfirmCity}>

@@ -15,11 +15,11 @@ import {
 } from "@/lib/countryData";
 import { geocodeAddress, geocodeCitySuggestions, type GeocodeResult } from "@/lib/geocode";
 import { PlanInput } from "@/lib/schema";
-import nextDynamic from "next/dynamic";
+import dynamicImport from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
-const Globe3D = nextDynamic(() => import("@/components/Globe3D"), {
+const Globe3D = dynamicImport(() => import("@/components/Globe3D"), {
   ssr: false,
   loading: () => (
     <div className="flex h-64 w-full items-center justify-center rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)] text-xs font-mono text-olive">

@@ -30,6 +30,7 @@ type Globe3DProps = {
   selectedCity?: { name?: string; lat: number; lng: number };
   locked?: boolean;
   lowMotion?: boolean;
+  showDebugCenter?: boolean;
 };
 
 type CountryFeature = Feature<Geometry, { name?: string }>;
@@ -38,6 +39,13 @@ type PointOfView = {
   lat: number;
   lng: number;
   altitude?: number;
+};
+
+type GlobePoint = {
+  lat: number;
+  lng: number;
+  name?: string;
+  type?: "city" | "debug-center";
 };
 
 type TopologyLike = {
@@ -173,7 +181,16 @@ const getFeatureCenter = (
 };
 
 const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
-  ({ selectedCountry, selectedCity, locked = false, lowMotion = false }, ref) => {
+  (
+    {
+      selectedCountry,
+      selectedCity,
+      locked = false,
+      lowMotion = false,
+      showDebugCenter = false,
+    },
+    ref
+  ) => {
     const globeRef = useRef<GlobeMethods | undefined>(undefined);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -319,6 +336,13 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       },
       [countryEntries, countryLookup, countryNameIndex]
     );
+
+    const debugCenter = useMemo(() => {
+      if (!showDebugCenter || !selectedCountry) return null;
+      const match = resolveCountryFeature(selectedCountry);
+      if (!match) return null;
+      return getFeatureCenter(match);
+    }, [resolveCountryFeature, selectedCountry, showDebugCenter]);
 
     const updateAutoRotate = useCallback((enabled: boolean) => {
       const controls = globeRef.current?.controls();
@@ -495,10 +519,26 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       };
     }, []);
 
-    const pointsData = useMemo(() => {
-      if (!selectedCity) return [];
-      return [{ lat: selectedCity.lat, lng: selectedCity.lng, name: selectedCity.name }];
-    }, [selectedCity]);
+    const pointsData = useMemo<GlobePoint[]>(() => {
+      const points: GlobePoint[] = [];
+      if (selectedCity) {
+        points.push({
+          lat: selectedCity.lat,
+          lng: selectedCity.lng,
+          name: selectedCity.name,
+          type: "city",
+        });
+      }
+      if (debugCenter) {
+        points.push({
+          lat: debugCenter.lat,
+          lng: debugCenter.lng,
+          name: "debug-center",
+          type: "debug-center",
+        });
+      }
+      return points;
+    }, [debugCenter, selectedCity]);
 
     const showFallback = !isWebGlAvailable;
 
@@ -553,9 +593,11 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
             polygonAltitude={0.005}
             // City point
             pointsData={pointsData}
-            pointColor={() => HIGHLIGHT_COLOR}
+            pointColor={(d) =>
+              (d as GlobePoint).type === "debug-center" ? "#ff2bd1" : HIGHLIGHT_COLOR
+            }
             pointAltitude={0.02}
-            pointRadius={0.18}
+            pointRadius={(d) => ((d as GlobePoint).type === "debug-center" ? 0.08 : 0.18)}
             // Controls init
             onGlobeReady={() => {
               const controls = globeRef.current?.controls();

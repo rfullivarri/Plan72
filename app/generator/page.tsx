@@ -34,6 +34,7 @@ export default function GeneratorPage() {
   // Wizard state machine for Step 1: country -> city -> address -> confirmed.
   const [stage, setStage] = useState<"country" | "city" | "address" | "confirmed">("country");
   const globeRef = useRef<Globe3DHandle | null>(null);
+  const countryDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setLatInput(input.start.lat.toString());
@@ -213,7 +214,9 @@ export default function GeneratorPage() {
     const globe = globeRef.current;
     if (!globe) return;
     if (stage === "country") {
-      globe.resetIdle();
+      if (!input.country.trim()) {
+        globe.resetIdle();
+      }
       return;
     }
     if (hasResolvedLocation && resolvedCenter) {
@@ -230,6 +233,27 @@ export default function GeneratorPage() {
     }
     globe.resetIdle();
   }, [cityFocus, hasResolvedLocation, input.country, resolvedCenter, stage]);
+
+  useEffect(() => {
+    const globe = globeRef.current;
+    if (!globe) return;
+    if (stage !== "country") return;
+    const value = input.country.trim();
+    if (value.length < 3) return;
+
+    if (countryDebounceRef.current) {
+      clearTimeout(countryDebounceRef.current);
+    }
+    countryDebounceRef.current = setTimeout(() => {
+      globe.focusCountry(value);
+    }, 320);
+
+    return () => {
+      if (countryDebounceRef.current) {
+        clearTimeout(countryDebounceRef.current);
+      }
+    };
+  }, [input.country, stage]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10 space-y-8">

@@ -52,7 +52,90 @@ const IDLE_ROTATION_SPEED = 0.35;
 const DEFAULT_VIEW: PointOfView = { lat: 10, lng: -10, altitude: 1.6 };
 const CITY_VIEW_ALTITUDE = 0.9;
 
-const normalizeName = (value?: string) => value?.trim().toLowerCase() ?? "";
+const normalizeCountryName = (value?: string) => {
+  if (!value) return "";
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const FALLBACK_REGION_CODES = ["US", "ES", "FR", "CN", "NL"];
+
+const getRegionCodes = () => {
+  const supportedValuesOf = (Intl as typeof Intl & { supportedValuesOf?: (key: string) => string[] })
+    .supportedValuesOf;
+  if (typeof supportedValuesOf !== "function") {
+    return FALLBACK_REGION_CODES;
+  }
+  try {
+    return supportedValuesOf("region");
+  } catch {
+    return FALLBACK_REGION_CODES;
+  }
+};
+
+const buildCountryNameIndex = () => {
+  const regionCodes = getRegionCodes();
+  const displayEn = new Intl.DisplayNames(["en"], { type: "region" });
+  const displayEs = new Intl.DisplayNames(["es"], { type: "region" });
+  const nameToIso = new Map<string, string>();
+
+  for (const code of regionCodes) {
+    const englishName = displayEn.of(code);
+    const spanishName = displayEs.of(code);
+    if (englishName) nameToIso.set(normalizeCountryName(englishName), code);
+    if (spanishName) nameToIso.set(normalizeCountryName(spanishName), code);
+  }
+  return {
+    nameToIso,
+    displayEn,
+    displayEs,
+  };
+};
+
+const ISO_ALIASES: Record<string, string[]> = {
+  US: ["USA", "U.S.A.", "United States", "United States of America", "Estados Unidos", "EE.UU.", "EE UU"],
+  NL: ["Netherlands", "Holanda", "Países Bajos", "Paises Bajos"],
+  ES: ["Spain", "España", "Espana"],
+  FR: ["France", "Francia"],
+  CN: ["China"],
+};
+
+const aliasToIso = new Map(
+  Object.entries(ISO_ALIASES).flatMap(([iso, aliases]) =>
+    aliases.map((alias) => [normalizeCountryName(alias), iso])
+  )
+);
+
+const resolveIsoCode = (input: string, nameIndex: Map<string, string>) => {
+  const normalized = normalizeCountryName(input);
+  if (!normalized) return null;
+  const aliasMatch = aliasToIso.get(normalized);
+  if (aliasMatch) return aliasMatch;
+  return nameIndex.get(normalized) ?? null;
+};
+
+const levenshteinDistance = (a: string, b: string) => {
+  const matrix = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i += 1) matrix[i][0] = i;
+  for (let j = 0; j <= b.length; j += 1) matrix[0][j] = j;
+  for (let i = 1; i <= a.length; i += 1) {
+    for (let j = 1; j <= b.length; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+  return matrix[a.length][b.length];
+};
 
 const getFeatureCoordinates = (geometry: Geometry): number[][] => {
   if (geometry.type === "Polygon") return geometry.coordinates.flat();
@@ -131,14 +214,79 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       return [];
     }, []);
 
+    const countryNameIndex = useMemo(() => buildCountryNameIndex(), []);
+
     const countryLookup = useMemo(() => {
       const lookup = new Map<string, CountryFeature>();
       for (const c of countries) {
-        const key = normalizeName(c.properties?.name);
+        const key = normalizeCountryName(c.properties?.name);
         if (key) lookup.set(key, c);
       }
       return lookup;
     }, [countries]);
+
+    const countryEntries = useMemo(
+      () =>
+        countries
+          .map((country) => ({
+            feature: country,
+            normalizedName: normalizeCountryName(country.properties?.name),
+          }))
+          .filter((entry) => entry.normalizedName.length > 0),
+      [countries]
+    );
+
+    const resolveCountryFeature = useCallback(
+      (input: string) => {
+        const normalizedInput = normalizeCountryName(input);
+        if (!normalizedInput || normalizedInput.length < 3) return null;
+
+        const iso = resolveIsoCode(input, countryNameIndex.nameToIso);
+        const candidateNames = new Set<string>();
+        if (iso) {
+          const isoUpper = iso.toUpperCase();
+          const englishName = countryNameIndex.displayEn.of(isoUpper);
+          const spanishName = countryNameIndex.displayEs.of(isoUpper);
+          if (englishName) candidateNames.add(englishName);
+          if (spanishName) candidateNames.add(spanishName);
+          for (const alias of ISO_ALIASES[isoUpper] ?? []) {
+            candidateNames.add(alias);
+          }
+        }
+        candidateNames.add(input);
+        candidateNames.add(normalizedInput);
+
+        for (const name of candidateNames) {
+          const normalized = normalizeCountryName(name);
+          const match = countryLookup.get(normalized);
+          if (match) return match;
+        }
+
+        const directMatch = countryLookup.get(normalizedInput);
+        if (directMatch) return directMatch;
+
+        let bestMatch: { feature: CountryFeature; distance: number } | null = null;
+        for (const entry of countryEntries) {
+          if (
+            entry.normalizedName.includes(normalizedInput) ||
+            normalizedInput.includes(entry.normalizedName)
+          ) {
+            return entry.feature;
+          }
+
+          const distance = levenshteinDistance(normalizedInput, entry.normalizedName);
+          if (!bestMatch || distance < bestMatch.distance) {
+            bestMatch = { feature: entry.feature, distance };
+          }
+        }
+
+        if (!bestMatch) return null;
+        const threshold = Math.max(2, Math.round(normalizedInput.length * 0.3));
+        if (bestMatch.distance <= threshold) return bestMatch.feature;
+        return null;
+      },
+      [countryEntries, countryLookup, countryNameIndex]
+    );
 
     const updateAutoRotate = useCallback((enabled: boolean) => {
       const controls = globeRef.current?.controls();
@@ -158,23 +306,30 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       resetTimerRef.current = setTimeout(() => updateAutoRotate(true), delayMs);
     }, [updateAutoRotate]);
 
-    const focusCountry = useCallback(
+    const focusCountryByInput = useCallback(
       (countryName: string) => {
-        const normalized = normalizeName(countryName);
-        if (!normalized) return;
-
-        const match = countryLookup.get(normalized);
-        if (!match) return;
+        const match = resolveCountryFeature(countryName);
+        if (!match) {
+          setHighlightedCountry(null);
+          return;
+        }
 
         const center = getFeatureCenter(match);
         if (!center) return;
 
         updateAutoRotate(false);
-        setHighlightedCountry(normalized);
+        setHighlightedCountry(normalizeCountryName(match.properties?.name));
         animateToPoint({ lat: center.lat, lng: center.lng, altitude: 1.3 }, 1500);
         scheduleIdleReset(1500);
       },
-      [animateToPoint, countryLookup, scheduleIdleReset, updateAutoRotate]
+      [animateToPoint, resolveCountryFeature, scheduleIdleReset, updateAutoRotate]
+    );
+
+    const focusCountry = useCallback(
+      (countryName: string) => {
+        focusCountryByInput(countryName);
+      },
+      [focusCountryByInput]
     );
 
     const focusCity = useCallback(
@@ -349,7 +504,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
             polygonCapColor={() => "rgba(0,0,0,0)"}
             polygonSideColor={() => "rgba(0,0,0,0)"}
             polygonStrokeColor={(d) => {
-              const name = normalizeName((d as CountryFeature).properties?.name);
+              const name = normalizeCountryName((d as CountryFeature).properties?.name);
               return name && name === highlightedCountry ? HIGHLIGHT_COLOR : BORDER_COLOR;
             }}
             polygonAltitude={0.005}

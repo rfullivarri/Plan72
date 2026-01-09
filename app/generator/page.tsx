@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-static";
+
 import ScenarioSelector from "@/components/ScenarioSelector";
 import { usePlan } from "@/components/PlanContext";
 import type { Globe3DHandle } from "@/components/Globe3D";

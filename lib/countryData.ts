@@ -92,19 +92,29 @@ const getFeatureCoordinates = (geometry: Geometry): number[][] => {
   return [];
 };
 
-const getFeatureCenter = (featureItem: CountryFeature): { lat: number; lng: number } | null => {
-  const coords = getFeatureCoordinates(featureItem.geometry);
+const getFeatureBoundsCenter = (geometry: Geometry): { lat: number; lng: number } | null => {
+  const coords = getFeatureCoordinates(geometry);
   if (!coords.length) return null;
 
-  const sum = coords.reduce(
-    (acc, [lngValue, latValue]) => ({
-      lat: acc.lat + latValue,
-      lng: acc.lng + lngValue,
-    }),
-    { lat: 0, lng: 0 }
-  );
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLng = Infinity;
+  let maxLng = -Infinity;
 
-  return { lat: sum.lat / coords.length, lng: sum.lng / coords.length };
+  for (const [lngValue, latValue] of coords) {
+    minLat = Math.min(minLat, latValue);
+    maxLat = Math.max(maxLat, latValue);
+    minLng = Math.min(minLng, lngValue);
+    maxLng = Math.max(maxLng, lngValue);
+  }
+
+  if (![minLat, maxLat, minLng, maxLng].every(Number.isFinite)) return null;
+
+  return { lat: (minLat + maxLat) / 2, lng: (minLng + maxLng) / 2 };
+};
+
+const getFeatureCenter = (featureItem: CountryFeature): { lat: number; lng: number } | null => {
+  return getFeatureBoundsCenter(featureItem.geometry);
 };
 
 const buildCountryOptions = (): CountryOption[] => {

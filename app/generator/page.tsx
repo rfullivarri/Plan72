@@ -245,6 +245,15 @@ export default function GeneratorPage() {
     }
     return null;
   }, [cityPreset, resolvedCenter]);
+  const selectedCity = useMemo(() => {
+    if (hasResolvedLocation && resolvedCenter) {
+      return { lat: resolvedCenter.lat, lng: resolvedCenter.lng, name: input.city || input.start.label };
+    }
+    if (cityFocus) {
+      return { lat: cityFocus.lat, lng: cityFocus.lng, name: input.city || input.start.label };
+    }
+    return null;
+  }, [cityFocus, hasResolvedLocation, input.city, input.start.label, resolvedCenter]);
 
   const countrySuggestions = useMemo(() => {
     if (stage !== "country") return [];
@@ -613,7 +622,12 @@ export default function GeneratorPage() {
             </div>
             <div className="flex h-full flex-col">
               <div className="flex-1 min-h-[320px] md:min-h-[420px]">
-                <Globe3D ref={globeRef} locked={hasResolvedLocation} />
+                <Globe3D
+                  ref={globeRef}
+                  locked={hasResolvedLocation}
+                  selectedCountry={input.country}
+                  selectedCity={selectedCity ?? undefined}
+                />
               </div>
             </div>
           </div>

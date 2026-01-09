@@ -247,12 +247,18 @@ export default function GeneratorPage() {
     if (stage !== "country") return [];
     const normalizedQuery = normalizeCountryInput(input.country);
     if (!normalizedQuery) return [];
-    const matches = countryOptions.filter((option) => option.normalizedName.includes(normalizedQuery));
+
+    // Filtra null/undefined antes de usar option.normalizedName
+    const matches = countryOptions
+      .filter((option): option is NonNullable<typeof option> => option != null)
+      .filter((option) => option.normalizedName.includes(normalizedQuery));
+
     matches.sort((a, b) => {
       const aStarts = a.normalizedName.startsWith(normalizedQuery);
       const bStarts = b.normalizedName.startsWith(normalizedQuery);
-      if (aStarts === bStarts) return a.name.localeCompare(b.name);
-      return aStarts ? -1 : 1;
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+      return a.normalizedName.localeCompare(b.normalizedName);
     });
     return matches.slice(0, 6);
   }, [countryOptions, input.country, stage]);

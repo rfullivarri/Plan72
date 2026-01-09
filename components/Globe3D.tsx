@@ -12,13 +12,20 @@ import {
 } from "react";
 import type { Feature, Geometry } from "geojson";
 import { feature } from "topojson-client";
-import type { GlobeMethods } from "react-globe.gl";
+import type { GlobeMethods, GlobeProps } from "react-globe.gl";
 import * as THREE from "three";
 
 import countriesData from "world-atlas/countries-110m.json";
 import { getCountryOptions, normalizeCountryInput } from "@/lib/countryData";
 
-const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
+const Globe = dynamic(async () => {
+  const { default: GlobeComponent } = await import("react-globe.gl");
+  const GlobeWithRef = forwardRef<GlobeMethods, GlobeProps>((props, ref) => (
+    <GlobeComponent ref={ref} {...props} />
+  ));
+  GlobeWithRef.displayName = "GlobeWithRef";
+  return GlobeWithRef;
+}, { ssr: false });
 
 export type Globe3DHandle = {
   focusCountry: (countryName: string) => void;

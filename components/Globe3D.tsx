@@ -206,6 +206,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     const [globeSize, setGlobeSize] = useState({ width: 0, height: 0 });
     const globeSizeRef = useRef({ width: 0, height: 0 });
     const pendingCountryRef = useRef<string | null>(null);
+    const pendingCityRef = useRef<{ lat: number; lng: number } | null>(null);
 
     // Material for a clean monochrome sphere (no earth texture)
     const globeMaterial = useMemo(() => {
@@ -397,6 +398,12 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
 
     const focusCity = useCallback(
       (lat: number, lng: number) => {
+        if (!isGlobeReadyRef.current) {
+          pendingCityRef.current = { lat, lng };
+          return;
+        }
+
+        pendingCityRef.current = null;
         updateAutoRotate(false);
         animateToPoint({ lat, lng, altitude: CITY_VIEW_ALTITUDE }, 1400);
         scheduleIdleReset(1500);
@@ -606,13 +613,23 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
               }
               setIsGlobeReady(true);
               isGlobeReadyRef.current = true;
+              let didFocus = false;
+              const pendingCity = pendingCityRef.current;
+              if (pendingCity) {
+                pendingCityRef.current = null;
+                focusCity(pendingCity.lat, pendingCity.lng);
+                didFocus = true;
+              }
               const pendingCountry = pendingCountryRef.current;
               if (pendingCountry) {
                 pendingCountryRef.current = null;
                 focusCountryByInput(pendingCountry);
+                didFocus = true;
               }
-              updateAutoRotate(true);
-              animateToPoint(DEFAULT_VIEW, 0);
+              if (!didFocus) {
+                updateAutoRotate(true);
+                animateToPoint(DEFAULT_VIEW, 0);
+              }
             }}
           />
         ) : null}

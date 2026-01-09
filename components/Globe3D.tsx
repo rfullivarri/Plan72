@@ -23,7 +23,7 @@ const Globe = dynamic(async () => {
   const GlobeWithRef = forwardRef<GlobeMethods, GlobeProps>((props, ref) => {
     const localRef = useRef<GlobeMethods | undefined>(undefined);
 
-    useImperativeHandle(ref, () => localRef.current as GlobeMethods, []);
+    useImperativeHandle(ref, () => localRef.current ?? null, []);
 
     return <GlobeComponent ref={localRef} {...props} />;
   });

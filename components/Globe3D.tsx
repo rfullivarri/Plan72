@@ -251,9 +251,14 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     const resolveCountryFeature = useCallback(
       (input: string) => {
         const normalizedInput = normalizeCountryName(input);
+        console.info("[Globe3D] resolveCountryFeature input", {
+          input,
+          normalizedInput,
+        });
         if (!normalizedInput || normalizedInput.length < 3) return null;
 
         const iso = resolveIsoCode(input, countryNameIndex.nameToIso);
+        console.info("[Globe3D] resolveCountryFeature iso", { input, iso });
         const candidateNames = new Set<string>();
         if (iso) {
           const isoUpper = iso.toUpperCase();
@@ -271,11 +276,23 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
         for (const name of candidateNames) {
           const normalized = normalizeCountryName(name);
           const match = countryLookup.get(normalized);
-          if (match) return match;
+          if (match) {
+            console.info("[Globe3D] resolveCountryFeature countryLookup match", {
+              normalized,
+              source: "candidate",
+            });
+            return match;
+          }
         }
 
         const directMatch = countryLookup.get(normalizedInput);
-        if (directMatch) return directMatch;
+        if (directMatch) {
+          console.info("[Globe3D] resolveCountryFeature countryLookup match", {
+            normalized: normalizedInput,
+            source: "direct",
+          });
+          return directMatch;
+        }
 
         let bestMatch: { feature: CountryFeature; distance: number } | null = null;
         for (const entry of countryEntries) {

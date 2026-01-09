@@ -84,11 +84,12 @@ export default function ResultsPage() {
                   <MapCorridor embedded showHeader={false} showResourceNodes />
                 </div>
                 <div className="space-y-2">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Globe3D</p>
-                  <Globe3D
-                    selectedCountry={input.country}
-                    selectedCity={{ name: input.city, lat: input.start.lat, lng: input.start.lng }}
-                  />
+                  <div className="min-h-[240px]">
+                    <Globe3D
+                      selectedCountry={input.country}
+                      selectedCity={{ name: input.city, lat: input.start.lat, lng: input.start.lng }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

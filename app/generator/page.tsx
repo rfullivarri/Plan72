@@ -31,7 +31,6 @@ export default function GeneratorPage() {
   const [labelInput, setLabelInput] = useState(input.start.label ?? "");
   const [hasResolvedLocation, setHasResolvedLocation] = useState(false);
   const [resolvedCenter, setResolvedCenter] = useState<{ lat: number; lng: number } | null>(null);
-  const [lowMotionEnabled, setLowMotionEnabled] = useState(false);
   const globeRef = useRef<Globe3DHandle | null>(null);
 
   useEffect(() => {
@@ -189,7 +188,7 @@ export default function GeneratorPage() {
             <h2 className="font-display text-2xl">Location onboarding</h2>
             <p className="text-sm text-ink/70">Define país, ciudad y una dirección/pin para anclar el plan.</p>
           </div>
-          <div className="grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
+          <div className="grid gap-6 md:grid-cols-2 items-stretch">
             <div className="space-y-5">
               <label className="space-y-1 text-sm font-semibold">
                 Country
@@ -299,21 +298,10 @@ export default function GeneratorPage() {
                 </button>
               </details>
             </div>
-            <div className="space-y-3">
-              <div>
-                <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Globe3D</p>
-                <p className="text-sm text-ink/70">Vista global sincronizada con tu selección.</p>
+            <div className="flex h-full flex-col">
+              <div className="flex-1 min-h-[320px] md:min-h-[420px]">
+                <Globe3D ref={globeRef} locked={hasResolvedLocation} />
               </div>
-              <label className="flex items-center gap-2 text-xs font-mono uppercase tracking-[0.2em] text-olive">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-ink"
-                  checked={lowMotionEnabled}
-                  onChange={(e) => setLowMotionEnabled(e.target.checked)}
-                />
-                Low Ink / Low Motion
-              </label>
-              <Globe3D ref={globeRef} locked={hasResolvedLocation} lowMotion={lowMotionEnabled} />
             </div>
           </div>
         </div>

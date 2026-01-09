@@ -179,13 +179,16 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lockedRef = useRef(locked);
     const reducedMotionRef = useRef(lowMotion);
+    const isGlobeReadyRef = useRef(false);
     const [highlightedCountry, setHighlightedCountry] = useState<string | null>(
       null
     );
     const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
     const [isWebGlAvailable, setIsWebGlAvailable] = useState(true);
+    const [isGlobeReady, setIsGlobeReady] = useState(false);
     const [globeSize, setGlobeSize] = useState({ width: 0, height: 0 });
     const globeSizeRef = useRef({ width: 0, height: 0 });
+    const pendingCountryRef = useRef<string | null>(null);
 
     // Material for a clean monochrome sphere (no earth texture)
     const globeMaterial = useMemo(() => {
@@ -337,8 +340,14 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
 
     const focusCountryByInput = useCallback(
       (countryName: string) => {
+        if (!isGlobeReadyRef.current) {
+          pendingCountryRef.current = countryName;
+          return;
+        }
+
         const match = resolveCountryFeature(countryName);
         if (!match) {
+          pendingCountryRef.current = null;
           setHighlightedCountry(null);
           return;
         }
@@ -346,6 +355,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
         const center = getFeatureCenter(match);
         if (!center) return;
 
+        pendingCountryRef.current = null;
         updateAutoRotate(false);
         setHighlightedCountry(normalizeCountryName(match.properties?.name));
         animateToPoint({ lat: center.lat, lng: center.lng, altitude: 1.3 }, 1500);
@@ -387,6 +397,10 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     useEffect(() => {
       updateAutoRotate(true);
     }, [updateAutoRotate]);
+
+    useEffect(() => {
+      isGlobeReadyRef.current = isGlobeReady;
+    }, [isGlobeReady]);
 
     useEffect(() => {
       lockedRef.current = locked;
@@ -547,6 +561,13 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
               const controls = globeRef.current?.controls();
               if (controls) {
                 controls.enablePan = false;
+              }
+              setIsGlobeReady(true);
+              isGlobeReadyRef.current = true;
+              const pendingCountry = pendingCountryRef.current;
+              if (pendingCountry) {
+                pendingCountryRef.current = null;
+                focusCountryByInput(pendingCountry);
               }
               updateAutoRotate(true);
               animateToPoint(DEFAULT_VIEW, 0);

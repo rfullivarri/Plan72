@@ -16,7 +16,7 @@ import type { GlobeMethods } from "react-globe.gl";
 import * as THREE from "three";
 
 import countriesData from "world-atlas/countries-110m.json";
-import { normalizeCountryInput } from "@/lib/countryData";
+import { getCountryOptions, normalizeCountryInput } from "@/lib/countryData";
 
 const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
 
@@ -381,12 +381,43 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       [countryEntries, countryLookup, countryNameIndex]
     );
 
+    const countryCenterLookup = useMemo(() => {
+      const lookup = new Map<string, { lat: number; lng: number }>();
+      for (const option of getCountryOptions()) {
+        lookup.set(option.normalizedName, { lat: option.lat, lng: option.lng });
+      }
+      return lookup;
+    }, []);
+
+    const resolveCountryCenter = useCallback(
+      (input: string, feature?: CountryFeature | null) => {
+        if (feature) {
+          const featureCenter = getFeatureCenter(feature);
+          if (featureCenter) return featureCenter;
+        }
+
+        const normalizedInput = normalizeCountryInput(input);
+        if (!normalizedInput) return null;
+
+        const directMatch = countryCenterLookup.get(normalizedInput);
+        if (directMatch) return directMatch;
+
+        for (const [key, center] of countryCenterLookup) {
+          if (key.includes(normalizedInput) || normalizedInput.includes(key)) {
+            return center;
+          }
+        }
+
+        return null;
+      },
+      [countryCenterLookup]
+    );
+
     const debugCenter = useMemo(() => {
       if (!showDebugCenter || !selectedCountry) return null;
       const match = resolveCountryFeature(selectedCountry);
-      if (!match) return null;
-      return getFeatureCenter(match);
-    }, [resolveCountryFeature, selectedCountry, showDebugCenter]);
+      return resolveCountryCenter(selectedCountry, match);
+    }, [resolveCountryCenter, resolveCountryFeature, selectedCountry, showDebugCenter]);
 
     const updateAutoRotate = useCallback((enabled: boolean) => {
       const controls = globeRef.current?.controls();
@@ -435,19 +466,27 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
         if (!match) {
           pendingCountryRef.current = null;
           setHighlightedCountry(null);
+        }
+
+        const center = resolveCountryCenter(countryName, match);
+        if (!center) {
+          pendingCountryRef.current = null;
           return;
         }
 
-        const center = getFeatureCenter(match);
-        if (!center) return;
-
         pendingCountryRef.current = null;
         updateAutoRotate(false);
-        setHighlightedCountry(normalizeCountryInput(match.properties?.name));
+        setHighlightedCountry(match ? normalizeCountryInput(match.properties?.name) : null);
         animateToPoint({ lat: center.lat, lng: center.lng, altitude: 1.3 }, 1500);
         scheduleIdleReset(1500);
       },
-      [animateToPoint, resolveCountryFeature, scheduleIdleReset, updateAutoRotate]
+      [
+        animateToPoint,
+        resolveCountryCenter,
+        resolveCountryFeature,
+        scheduleIdleReset,
+        updateAutoRotate,
+      ]
     );
 
     const focusCountry = useCallback(

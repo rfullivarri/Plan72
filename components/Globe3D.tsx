@@ -83,7 +83,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     const containerRef = useRef<HTMLDivElement | null>(null);
     const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lockedRef = useRef(locked);
-    const lowMotionRef = useRef(lowMotion);
+    const reducedMotionRef = useRef(lowMotion);
     const [highlightedCountry, setHighlightedCountry] = useState<string | null>(
       null
     );
@@ -143,16 +143,17 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     const updateAutoRotate = useCallback((enabled: boolean) => {
       const controls = globeRef.current?.controls();
       if (!controls) return;
-      controls.autoRotate = enabled && !lowMotionRef.current;
+      controls.autoRotate = enabled && !reducedMotionRef.current;
       controls.autoRotateSpeed = IDLE_ROTATION_SPEED;
     }, []);
 
     const animateToPoint = useCallback((point: PointOfView, duration = 1400) => {
-      globeRef.current?.pointOfView(point, duration);
+      const nextDuration = reducedMotionRef.current ? 0 : duration;
+      globeRef.current?.pointOfView(point, nextDuration);
     }, []);
 
     const scheduleIdleReset = useCallback(() => {
-      if (lockedRef.current || lowMotionRef.current) return;
+      if (lockedRef.current || reducedMotionRef.current) return;
       if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
       resetTimerRef.current = setTimeout(() => updateAutoRotate(true), 1600);
     }, [updateAutoRotate]);
@@ -188,7 +189,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     const resetIdle = useCallback(() => {
       setHighlightedCountry(null);
       animateToPoint(DEFAULT_VIEW, 1200);
-      if (!lockedRef.current && !lowMotionRef.current) {
+      if (!lockedRef.current && !reducedMotionRef.current) {
         updateAutoRotate(true);
       }
     }, [animateToPoint, updateAutoRotate]);
@@ -214,14 +215,17 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     }, [locked, updateAutoRotate]);
 
     useEffect(() => {
-      lowMotionRef.current = lowMotion;
-      if (lowMotion) {
+      const reducedMotion = lowMotion || prefersReducedMotion;
+      reducedMotionRef.current = reducedMotion;
+      if (reducedMotion) {
         if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
         updateAutoRotate(false);
-      } else {
+        return;
+      }
+      if (!lockedRef.current) {
         updateAutoRotate(true);
       }
-    }, [lowMotion, updateAutoRotate]);
+    }, [lowMotion, prefersReducedMotion, updateAutoRotate]);
 
     useEffect(() => {
       if (selectedCountry) focusCountry(selectedCountry);
@@ -294,12 +298,12 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       return [{ lat: selectedCity.lat, lng: selectedCity.lng, name: selectedCity.name }];
     }, [selectedCity]);
 
-    const showFallback = prefersReducedMotion || !isWebGlAvailable;
+    const showFallback = !isWebGlAvailable;
 
     return (
       <div
         ref={containerRef}
-        className="relative h-64 w-full overflow-hidden rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)] min-h-64 max-h-64"
+        className="relative h-full w-full overflow-hidden rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)]"
       >
         {showFallback ? (
           <div className="flex h-full w-full items-center justify-center bg-[rgba(240,230,207,0.35)]">
@@ -361,14 +365,6 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
             }}
           />
         ) : null}
-        <div className="pointer-events-none absolute left-4 top-4 rounded-full border-2 border-ink/60 bg-[rgba(255,255,255,0.85)] px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-olive">
-          Globe
-        </div>
-        {locked && (
-          <div className="pointer-events-none absolute right-4 top-4 rounded-full border-2 border-ink bg-[rgba(255,255,255,0.9)] px-3 py-1 text-[10px] font-mono uppercase tracking-[0.2em] text-ink">
-            LOCKED
-          </div>
-        )}
       </div>
     );
   }

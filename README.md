@@ -51,4 +51,6 @@ The project is configured for static export with a `basePath` and `assetPrefix` 
    ```
 
    The exported site is written to `out/` and includes a `.nojekyll` marker so GitHub Pages will serve the `_next` assets.
-2. Push the contents of `out/` to your `gh-pages` branch (for example, using `git subtree push --prefix out origin gh-pages`) and enable GitHub Pages for that branch in the repository settings.
+2. In GitHub, open **Settings → Pages** and review the **Source** configuration.
+3. If you use the static export, push the contents of `out/` to the `gh-pages` branch (for example, using `git subtree push --prefix out origin gh-pages`) and set Pages to serve from the `gh-pages` branch root.
+4. If you prefer to serve from `/docs`, move the contents of `out/` into `docs/` and update Pages to serve from the `/docs` folder.

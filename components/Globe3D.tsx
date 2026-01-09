@@ -16,6 +16,7 @@ import type { GlobeMethods } from "react-globe.gl";
 import * as THREE from "three";
 
 import countriesData from "world-atlas/countries-110m.json";
+import { normalizeCountryInput } from "@/lib/countryData";
 
 const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
 
@@ -60,18 +61,6 @@ const IDLE_ROTATION_SPEED = 0.35;
 const DEFAULT_VIEW: PointOfView = { lat: 10, lng: -10, altitude: 1.6 };
 const CITY_VIEW_ALTITUDE = 0.9;
 
-const normalizeCountryName = (value?: string) => {
-  if (!value) return "";
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-};
-
 const FALLBACK_REGION_CODES = ["US", "ES", "FR", "CN", "NL"];
 
 const getRegionCodes = () => {
@@ -96,8 +85,8 @@ const buildCountryNameIndex = () => {
   for (const code of regionCodes) {
     const englishName = displayEn.of(code);
     const spanishName = displayEs.of(code);
-    if (englishName) nameToIso.set(normalizeCountryName(englishName), code);
-    if (spanishName) nameToIso.set(normalizeCountryName(spanishName), code);
+    if (englishName) nameToIso.set(normalizeCountryInput(englishName), code);
+    if (spanishName) nameToIso.set(normalizeCountryInput(spanishName), code);
   }
   return {
     nameToIso,
@@ -116,12 +105,12 @@ const ISO_ALIASES: Record<string, string[]> = {
 
 const aliasToIso = new Map(
   Object.entries(ISO_ALIASES).flatMap(([iso, aliases]) =>
-    aliases.map((alias) => [normalizeCountryName(alias), iso])
+    aliases.map((alias) => [normalizeCountryInput(alias), iso])
   )
 );
 
 const resolveIsoCode = (input: string, nameIndex: Map<string, string>) => {
-  const normalized = normalizeCountryName(input);
+  const normalized = normalizeCountryInput(input);
   if (!normalized) return null;
   const aliasMatch = aliasToIso.get(normalized);
   if (aliasMatch) return aliasMatch;
@@ -252,7 +241,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     const countryLookup = useMemo(() => {
       const lookup = new Map<string, CountryFeature>();
       for (const c of countries) {
-        const key = normalizeCountryName(c.properties?.name);
+        const key = normalizeCountryInput(c.properties?.name);
         if (key) lookup.set(key, c);
       }
       return lookup;
@@ -263,7 +252,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
         countries
           .map((country) => ({
             feature: country,
-            normalizedName: normalizeCountryName(country.properties?.name),
+            normalizedName: normalizeCountryInput(country.properties?.name),
           }))
           .filter((entry) => entry.normalizedName.length > 0),
       [countries]
@@ -271,7 +260,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
 
     const resolveCountryFeature = useCallback(
       (input: string) => {
-        const normalizedInput = normalizeCountryName(input);
+        const normalizedInput = normalizeCountryInput(input);
         console.info("[Globe3D] resolveCountryFeature input", {
           input,
           normalizedInput,
@@ -295,7 +284,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
         candidateNames.add(normalizedInput);
 
         for (const name of candidateNames) {
-          const normalized = normalizeCountryName(name);
+          const normalized = normalizeCountryInput(name);
           const match = countryLookup.get(normalized);
           if (match) {
             console.info("[Globe3D] resolveCountryFeature countryLookup match", {
@@ -377,7 +366,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       (countryName: string) => {
         console.info("[Globe3D] Calling globe.focusCountry =>", {
           raw: countryName,
-          normalized: normalizeCountryName(countryName),
+          normalized: normalizeCountryInput(countryName),
         });
         console.info(
           "[Globe3D] globeRef.current at focusCountry call =>",
@@ -400,7 +389,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
 
         pendingCountryRef.current = null;
         updateAutoRotate(false);
-        setHighlightedCountry(normalizeCountryName(match.properties?.name));
+        setHighlightedCountry(normalizeCountryInput(match.properties?.name));
         animateToPoint({ lat: center.lat, lng: center.lng, altitude: 1.3 }, 1500);
         scheduleIdleReset(1500);
       },
@@ -613,7 +602,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
             polygonCapColor={() => "rgba(0,0,0,0)"}
             polygonSideColor={() => "rgba(0,0,0,0)"}
             polygonStrokeColor={(d) => {
-              const name = normalizeCountryName((d as CountryFeature).properties?.name);
+              const name = normalizeCountryInput((d as CountryFeature).properties?.name);
               return name && name === highlightedCountry ? HIGHLIGHT_COLOR : BORDER_COLOR;
             }}
             polygonAltitude={0.005}

@@ -140,6 +140,62 @@ const getFeatureCoordinates = (geometry: Geometry): number[][] => {
   return [];
 };
 
+const getRingCentroid = (ring: number[][]): { lat: number; lng: number; area: number } | null => {
+  if (ring.length < 3) return null;
+
+  let areaAccumulator = 0;
+  let centroidX = 0;
+  let centroidY = 0;
+  const lastIndex = ring.length - 1;
+  const ringPoints =
+    ring[0][0] === ring[lastIndex][0] && ring[0][1] === ring[lastIndex][1]
+      ? ring.slice(0, -1)
+      : ring;
+
+  if (ringPoints.length < 3) return null;
+
+  for (let i = 0; i < ringPoints.length; i += 1) {
+    const [x0, y0] = ringPoints[i];
+    const [x1, y1] = ringPoints[(i + 1) % ringPoints.length];
+    const cross = x0 * y1 - x1 * y0;
+    areaAccumulator += cross;
+    centroidX += (x0 + x1) * cross;
+    centroidY += (y0 + y1) * cross;
+  }
+
+  if (!Number.isFinite(areaAccumulator) || areaAccumulator === 0) return null;
+  const area = areaAccumulator / 2;
+  const factor = 1 / (6 * area);
+  const lng = centroidX * factor;
+  const lat = centroidY * factor;
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng, area: Math.abs(area) };
+};
+
+const getFeatureCentroid = (
+  featureItem: CountryFeature
+): { lat: number; lng: number } | null => {
+  const geometry = featureItem.geometry;
+  let bestCentroid: { lat: number; lng: number; area: number } | null = null;
+
+  if (geometry.type === "Polygon") {
+    const ringCentroid = getRingCentroid(geometry.coordinates[0] ?? []);
+    if (ringCentroid) bestCentroid = ringCentroid;
+  } else if (geometry.type === "MultiPolygon") {
+    for (const polygon of geometry.coordinates) {
+      const ringCentroid = getRingCentroid(polygon[0] ?? []);
+      if (!ringCentroid) continue;
+      if (!bestCentroid || ringCentroid.area > bestCentroid.area) {
+        bestCentroid = ringCentroid;
+      }
+    }
+  }
+
+  if (!bestCentroid) return null;
+  return { lat: bestCentroid.lat, lng: bestCentroid.lng };
+};
+
 const getFeatureBoundsCenter = (
   geometry: Geometry
 ): { lat: number; lng: number } | null => {
@@ -163,10 +219,8 @@ const getFeatureBoundsCenter = (
   return { lat: (minLat + maxLat) / 2, lng: (minLng + maxLng) / 2 };
 };
 
-const getFeatureCenter = (
-  featureItem: CountryFeature
-): { lat: number; lng: number } | null => {
-  return getFeatureBoundsCenter(featureItem.geometry);
+const getFeatureCenter = (featureItem: CountryFeature): { lat: number; lng: number } | null => {
+  return getFeatureCentroid(featureItem) ?? getFeatureBoundsCenter(featureItem.geometry);
 };
 
 const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(

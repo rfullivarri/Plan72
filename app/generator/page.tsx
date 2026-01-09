@@ -9,7 +9,7 @@ import { geocodeAddress, type GeocodeResult } from "@/lib/geocode";
 import { PlanInput } from "@/lib/schema";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
 const Globe3D = dynamic(() => import("@/components/Globe3D"), {
   ssr: false,
@@ -31,6 +31,8 @@ export default function GeneratorPage() {
   const [labelInput, setLabelInput] = useState(input.start.label ?? "");
   const [hasResolvedLocation, setHasResolvedLocation] = useState(false);
   const [resolvedCenter, setResolvedCenter] = useState<{ lat: number; lng: number } | null>(null);
+  // Wizard state machine for Step 1: country -> city -> address -> confirmed.
+  const [stage, setStage] = useState<"country" | "city" | "address" | "confirmed">("country");
   const globeRef = useRef<Globe3DHandle | null>(null);
 
   useEffect(() => {
@@ -42,6 +44,18 @@ export default function GeneratorPage() {
   const resetResolvedLocation = () => {
     setHasResolvedLocation(false);
     setResolvedCenter(null);
+  };
+
+  const resetAddress = () => {
+    setAddressQuery("");
+    setGeocodeResults([]);
+    setLocationStatus(null);
+    resetResolvedLocation();
+  };
+
+  const resetCityAndAddress = () => {
+    updateInput("city", "");
+    resetAddress();
   };
 
   const handleCityChange = (value: string) => {
@@ -75,6 +89,59 @@ export default function GeneratorPage() {
   const handleCountryChange = (value: string) => {
     resetResolvedLocation();
     updateInput("country", value);
+  };
+
+  const handleConfirmCountry = () => {
+    setStage("city");
+    if (input.country.trim()) {
+      globeRef.current?.focusCountry(input.country);
+    }
+  };
+
+  const handleConfirmCity = () => {
+    setStage("address");
+  };
+
+  const handleConfirmAddress = () => {
+    setStage("confirmed");
+  };
+
+  const handleEditCountry = () => {
+    setStage("country");
+    resetCityAndAddress();
+  };
+
+  const handleEditCity = () => {
+    setStage("city");
+    resetAddress();
+  };
+
+  const handleStageBack = () => {
+    if (stage === "confirmed") {
+      setStage("address");
+      return;
+    }
+    if (stage === "address") {
+      handleEditCity();
+      return;
+    }
+    if (stage === "city") {
+      handleEditCountry();
+    }
+  };
+
+  const handleStageKeyDown = (
+    event: KeyboardEvent<HTMLInputElement>,
+    onConfirm: () => void
+  ) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      onConfirm();
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      handleStageBack();
+    }
   };
 
   const handleApplyLocation = (result?: GeocodeResult) => {
@@ -145,6 +212,10 @@ export default function GeneratorPage() {
   useEffect(() => {
     const globe = globeRef.current;
     if (!globe) return;
+    if (stage === "country") {
+      globe.resetIdle();
+      return;
+    }
     if (hasResolvedLocation && resolvedCenter) {
       globe.focusCity(resolvedCenter.lat, resolvedCenter.lng);
       return;
@@ -158,7 +229,7 @@ export default function GeneratorPage() {
       return;
     }
     globe.resetIdle();
-  }, [cityFocus, hasResolvedLocation, input.country, resolvedCenter]);
+  }, [cityFocus, hasResolvedLocation, input.country, resolvedCenter, stage]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10 space-y-8">
@@ -196,62 +267,124 @@ export default function GeneratorPage() {
                   className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
                   placeholder="Spain"
                   value={input.country}
+                  readOnly={stage !== "country"}
+                  aria-readonly={stage !== "country"}
                   onChange={(e) => handleCountryChange(e.target.value)}
+                  onKeyDown={(event) => handleStageKeyDown(event, handleConfirmCountry)}
                 />
               </label>
-              <label className="space-y-1 text-sm font-semibold">
-                City name
-                <input
-                  className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
-                  value={input.city}
-                  onChange={(e) => handleCityChange(e.target.value)}
-                />
-              </label>
-              <div className="grid gap-3">
+              <div className="flex flex-wrap gap-2">
+                {stage === "country" ? (
+                  <button type="button" className="ink-button" onClick={handleConfirmCountry}>
+                    Next
+                  </button>
+                ) : (
+                  <button type="button" className="ink-button" onClick={handleEditCountry}>
+                    Edit country
+                  </button>
+                )}
+              </div>
+              <div
+                className={`grid gap-5 transition-all duration-300 ${
+                  stage === "city" || stage === "address" || stage === "confirmed"
+                    ? "opacity-100 translate-y-0 max-h-[500px]"
+                    : "opacity-0 -translate-y-2 max-h-0 pointer-events-none overflow-hidden"
+                }`}
+                aria-hidden={stage === "country"}
+              >
                 <label className="space-y-1 text-sm font-semibold">
-                  Address / POI
+                  City name
                   <input
                     className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
-                    placeholder="Carrer Aragó 200, BCN"
-                    value={addressQuery}
-                    onChange={(e) => {
-                      resetResolvedLocation();
-                      setAddressQuery(e.target.value);
-                    }}
+                    value={input.city}
+                    readOnly={stage !== "city"}
+                    aria-readonly={stage !== "city"}
+                    onChange={(e) => handleCityChange(e.target.value)}
+                    onKeyDown={(event) => handleStageKeyDown(event, handleConfirmCity)}
                   />
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" className="ink-button" onClick={handleSearchLocation}>
-                    Use this location
-                  </button>
-                  <button type="button" className="ink-button" onClick={handleBCNPreset}>
-                    Load preset
-                  </button>
+                  {stage === "city" ? (
+                    <button type="button" className="ink-button" onClick={handleConfirmCity}>
+                      Continue
+                    </button>
+                  ) : (
+                    <button type="button" className="ink-button" onClick={handleEditCity}>
+                      Edit city
+                    </button>
+                  )}
                 </div>
-                {locationStatus && <p className="text-xs text-olive font-mono">{locationStatus}</p>}
-                {geocodeResults.length > 0 && (
-                  <div className="rounded-lg border-2 border-dashed border-ink/60 bg-[rgba(240,245,238,0.7)] p-3 text-sm">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Suggestions</p>
-                    <ul className="mt-2 space-y-2">
-                      {geocodeResults.map((result) => (
-                        <li
-                          key={`${result.displayName}-${result.lat}-${result.lng}`}
-                          className="flex items-center justify-between gap-2"
-                        >
-                          <div>
-                            <p className="font-semibold">{result.displayName}</p>
-                            <p className="text-xs text-ink/70">
-                              {result.lat.toFixed(4)}, {result.lng.toFixed(4)}
-                            </p>
-                          </div>
-                          <button type="button" className="ink-button" onClick={() => handleApplyLocation(result)}>
-                            Use this location
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                <div
+                  className={`grid gap-3 transition-all duration-300 ${
+                    stage === "address" || stage === "confirmed"
+                      ? "opacity-100 translate-y-0 max-h-[700px]"
+                      : "opacity-0 -translate-y-2 max-h-0 pointer-events-none overflow-hidden"
+                  }`}
+                  aria-hidden={stage === "country" || stage === "city"}
+                >
+                  <label className="space-y-1 text-sm font-semibold">
+                    Address / POI
+                    <input
+                      className="w-full rounded-lg border-2 border-ink bg-[rgba(255,255,255,0.7)] px-3 py-2 font-mono text-sm shadow-[6px_8px_0_rgba(27,26,20,0.14)]"
+                      placeholder="Carrer Aragó 200, BCN"
+                      value={addressQuery}
+                      readOnly={stage !== "address"}
+                      aria-readonly={stage !== "address"}
+                      onChange={(e) => {
+                        resetResolvedLocation();
+                        setAddressQuery(e.target.value);
+                      }}
+                      onKeyDown={(event) => handleStageKeyDown(event, handleConfirmAddress)}
+                    />
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {stage === "address" && (
+                      <button type="button" className="ink-button" onClick={handleConfirmAddress}>
+                        Continue
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="ink-button"
+                      onClick={handleSearchLocation}
+                      disabled={stage !== "confirmed"}
+                    >
+                      Use this location
+                    </button>
+                    <button type="button" className="ink-button" onClick={handleBCNPreset}>
+                      Load preset
+                    </button>
                   </div>
-                )}
+                  {locationStatus && <p className="text-xs text-olive font-mono">{locationStatus}</p>}
+                  {geocodeResults.length > 0 && (
+                    <div className="rounded-lg border-2 border-dashed border-ink/60 bg-[rgba(240,245,238,0.7)] p-3 text-sm">
+                      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Suggestions</p>
+                      <ul className="mt-2 space-y-2">
+                        {geocodeResults.map((result) => (
+                          <li
+                            key={`${result.displayName}-${result.lat}-${result.lng}`}
+                            className="flex items-center justify-between gap-2"
+                          >
+                            <div>
+                              <p className="font-semibold">{result.displayName}</p>
+                              <p className="text-xs text-ink/70">
+                                {result.lat.toFixed(4)}, {result.lng.toFixed(4)}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              className="ink-button"
+                              onClick={() => handleApplyLocation(result)}
+                              disabled={stage !== "confirmed"}
+                            >
+                              Use this location
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
               <details className="rounded-xl border-2 border-dashed border-ink/40 p-3">
                 <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.2em] text-olive">

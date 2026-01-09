@@ -107,7 +107,7 @@ const getFeatureCenter = (featureItem: CountryFeature): { lat: number; lng: numb
   return { lat: sum.lat / coords.length, lng: sum.lng / coords.length };
 };
 
-const buildCountryOptions = () => {
+const buildCountryOptions = (): CountryOption[] => {
   const topo = countriesData as unknown as TopologyLike;
   const obj = (countriesData as unknown as { objects?: { countries?: unknown } })
     .objects?.countries;
@@ -124,26 +124,25 @@ const buildCountryOptions = () => {
 
   const nameIndex = buildCountryNameIndex();
 
-  return features
-    .map((item) => {
-      const name = item.properties?.name?.trim() ?? "";
-      const normalizedName = normalizeCountryName(name);
-      const center = getFeatureCenter(item);
-      if (!name || !normalizedName || !center) return null;
-      return {
-        name,
-        normalizedName,
-        lat: center.lat,
-        lng: center.lng,
-        isoCode: resolveIsoCode(name, nameIndex.nameToIso),
-      } satisfies CountryOption;
-    })
-    .filter((entry): entry is CountryOption => Boolean(entry));
+  return features.reduce<CountryOption[]>((acc, item) => {
+    const name = item.properties?.name?.trim() ?? "";
+    const normalizedName = normalizeCountryName(name);
+    const center = getFeatureCenter(item);
+    if (!name || !normalizedName || !center) return acc;
+    acc.push({
+      name,
+      normalizedName,
+      lat: center.lat,
+      lng: center.lng,
+      isoCode: resolveIsoCode(name, nameIndex.nameToIso),
+    });
+    return acc;
+  }, []);
 };
 
-const COUNTRY_OPTIONS = buildCountryOptions();
+const COUNTRY_OPTIONS: CountryOption[] = buildCountryOptions();
 
-export const getCountryOptions = () => COUNTRY_OPTIONS;
+export const getCountryOptions = (): CountryOption[] => COUNTRY_OPTIONS;
 
 export const resolveCountryIsoCode = (input: string) => {
   const nameIndex = buildCountryNameIndex();

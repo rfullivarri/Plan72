@@ -613,20 +613,21 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
               }
               setIsGlobeReady(true);
               isGlobeReadyRef.current = true;
-              let didFocus = false;
               const pendingCity = pendingCityRef.current;
+              const pendingCountry = pendingCountryRef.current;
+              const hasPending = Boolean(pendingCity || pendingCountry);
+              if (hasPending) {
+                console.info("onGlobeReady -> focus pending -> (no reset)");
+              }
               if (pendingCity) {
                 pendingCityRef.current = null;
                 focusCity(pendingCity.lat, pendingCity.lng);
-                didFocus = true;
               }
-              const pendingCountry = pendingCountryRef.current;
               if (pendingCountry) {
                 pendingCountryRef.current = null;
                 focusCountryByInput(pendingCountry);
-                didFocus = true;
               }
-              if (!didFocus) {
+              if (!hasPending) {
                 updateAutoRotate(true);
                 animateToPoint(DEFAULT_VIEW, 0);
               }

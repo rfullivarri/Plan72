@@ -103,6 +103,11 @@ export default function GeneratorPage() {
   };
 
   const handleCountryChange = (value: string) => {
+    console.info("[Generator] Country input changed (typing) =>", value);
+    console.info(
+      "[Generator] Country normalized (typing) =>",
+      normalizeCountryInput(value)
+    );
     resetResolvedLocation();
     updateInput("country", value);
     resetCityAndAddress();
@@ -110,6 +115,11 @@ export default function GeneratorPage() {
 
   const handleConfirmCountry = () => {
     setStage("city");
+    console.info("[Generator] Country input confirmed =>", input.country);
+    console.info(
+      "[Generator] Country normalized (confirm) =>",
+      normalizeCountryInput(input.country)
+    );
     if (input.country.trim()) {
       globeRef.current?.focusCountry(input.country);
     }

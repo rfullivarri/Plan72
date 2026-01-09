@@ -354,7 +354,17 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
 
     const animateToPoint = useCallback((point: PointOfView, duration = 1400) => {
       const nextDuration = reducedMotionRef.current ? 0 : duration;
+      const beforePov = globeRef.current?.pointOfView();
+      console.info("[Globe3D] POV before/target", {
+        before: beforePov,
+        target: point,
+        duration: nextDuration,
+      });
       globeRef.current?.pointOfView(point, nextDuration);
+      setTimeout(() => {
+        const afterPov = globeRef.current?.pointOfView();
+        console.info("[Globe3D] POV after (50ms)", { after: afterPov });
+      }, 50);
     }, []);
 
     const scheduleIdleReset = useCallback((delayMs = 1500) => {
@@ -365,6 +375,14 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
 
     const focusCountryByInput = useCallback(
       (countryName: string) => {
+        console.info("[Globe3D] Calling globe.focusCountry =>", {
+          raw: countryName,
+          normalized: normalizeCountryName(countryName),
+        });
+        console.info(
+          "[Globe3D] globeRef.current at focusCountry call =>",
+          Boolean(globeRef.current)
+        );
         if (!isGlobeReadyRef.current) {
           pendingCountryRef.current = countryName;
           return;
@@ -398,6 +416,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
 
     const focusCity = useCallback(
       (lat: number, lng: number) => {
+        console.info("[Globe3D] Calling globe.focusCity =>", { lat, lng });
         if (!isGlobeReadyRef.current) {
           pendingCityRef.current = { lat, lng };
           return;

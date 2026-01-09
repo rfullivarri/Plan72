@@ -7,6 +7,11 @@ export type GeocodeResult = {
   addresstype?: string;
 };
 
+type GeocodeQueryOptions = {
+  limit?: number;
+  countryCodes?: string;
+};
+
 const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
 let lastRequestAt = 0;
 
@@ -14,9 +19,14 @@ async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function geocodeAddress(query: string): Promise<GeocodeResult[]> {
+export async function geocodeAddress(
+  query: string,
+  options: GeocodeQueryOptions = {}
+): Promise<GeocodeResult[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
+
+  const limit = options.limit ?? 5;
 
   const now = Date.now();
   const elapsed = now - lastRequestAt;
@@ -28,8 +38,11 @@ export async function geocodeAddress(query: string): Promise<GeocodeResult[]> {
     q: trimmed,
     format: "json",
     addressdetails: "1",
-    limit: "5",
+    limit: limit.toString(),
   });
+  if (options.countryCodes) {
+    params.set("countrycodes", options.countryCodes);
+  }
 
   const response = await fetch(`${NOMINATIM_ENDPOINT}?${params.toString()}`, {
     headers: {
@@ -76,6 +89,21 @@ export async function geocodeAddress(query: string): Promise<GeocodeResult[]> {
       type: hit.type,
       addresstype: hit.addresstype,
     } satisfies GeocodeResult;
+  });
+}
+
+const CITY_TYPES = new Set(["city", "town", "village", "municipality", "hamlet"]);
+
+export async function geocodeCitySuggestions(
+  query: string,
+  options: GeocodeQueryOptions = {}
+): Promise<GeocodeResult[]> {
+  const results = await geocodeAddress(query, { ...options, limit: options.limit ?? 8 });
+  return results.filter((result) => {
+    if (!result.addresstype && !result.type) return true;
+    if (result.addresstype && CITY_TYPES.has(result.addresstype)) return true;
+    if (result.type && CITY_TYPES.has(result.type)) return true;
+    return false;
   });
 }
 

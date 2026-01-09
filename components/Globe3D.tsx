@@ -152,10 +152,10 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       globeRef.current?.pointOfView(point, nextDuration);
     }, []);
 
-    const scheduleIdleReset = useCallback(() => {
+    const scheduleIdleReset = useCallback((delayMs = 1500) => {
       if (lockedRef.current || reducedMotionRef.current) return;
       if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-      resetTimerRef.current = setTimeout(() => updateAutoRotate(true), 1600);
+      resetTimerRef.current = setTimeout(() => updateAutoRotate(true), delayMs);
     }, [updateAutoRotate]);
 
     const focusCountry = useCallback(
@@ -172,7 +172,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
         updateAutoRotate(false);
         setHighlightedCountry(normalized);
         animateToPoint({ lat: center.lat, lng: center.lng, altitude: 1.3 }, 1500);
-        scheduleIdleReset();
+        scheduleIdleReset(1500);
       },
       [animateToPoint, countryLookup, scheduleIdleReset, updateAutoRotate]
     );
@@ -181,7 +181,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       (lat: number, lng: number) => {
         updateAutoRotate(false);
         animateToPoint({ lat, lng, altitude: CITY_VIEW_ALTITUDE }, 1400);
-        scheduleIdleReset();
+        scheduleIdleReset(1500);
       },
       [animateToPoint, scheduleIdleReset, updateAutoRotate]
     );
@@ -228,7 +228,11 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     }, [lowMotion, prefersReducedMotion, updateAutoRotate]);
 
     useEffect(() => {
-      if (selectedCountry) focusCountry(selectedCountry);
+      if (!selectedCountry) {
+        setHighlightedCountry(null);
+        return;
+      }
+      focusCountry(selectedCountry);
     }, [focusCountry, selectedCountry]);
 
     useEffect(() => {

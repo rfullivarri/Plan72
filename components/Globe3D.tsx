@@ -77,8 +77,8 @@ const HIGHLIGHT_COLOR = "#b35a2a";
 const HIGHLIGHT_FILL = "rgba(179, 90, 42, 0.28)";
 const IDLE_ROTATION_SPEED = 0.35;
 const DEFAULT_VIEW: PointOfView = { lat: 10, lng: -10, altitude: 1.6 };
-const COUNTRY_VIEW_ALTITUDE = 0.42;
-const CITY_VIEW_ALTITUDE = 0.7;
+const COUNTRY_VIEW_ALTITUDE = 0.7;
+const CITY_VIEW_ALTITUDE = 0.42;
 
 const FALLBACK_REGION_CODES = ["US", "ES", "FR", "CN", "NL"];
 

@@ -6,6 +6,7 @@ import ScenarioSelector from "@/components/ScenarioSelector";
 import { usePlan } from "@/components/PlanContext";
 import Globe3D from "@/components/Globe3D";
 import type { Globe3DHandle } from "@/components/Globe3D";
+import MapCorridor from "@/components/MapCorridor";
 import { MOMENT_CODES, PLAN_LEVELS } from "@/lib/constants";
 import { cityTemplates } from "@/lib/cityTemplates";
 import {
@@ -30,6 +31,7 @@ export default function GeneratorPage() {
   const [labelInput, setLabelInput] = useState(input.start.label ?? "");
   const [hasResolvedLocation, setHasResolvedLocation] = useState(false);
   const [resolvedCenter, setResolvedCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [showMapPreview, setShowMapPreview] = useState(false);
   const [citySuggestions, setCitySuggestions] = useState<GeocodeResult[]>([]);
   const [selectedGeocodeResult, setSelectedGeocodeResult] = useState<GeocodeResult | null>(null);
   const [cityStatus, setCityStatus] = useState<string | null>(null);
@@ -48,6 +50,11 @@ export default function GeneratorPage() {
     setLngInput(input.start.lng.toString());
     setLabelInput(input.start.label ?? "");
   }, [input.start.lat, input.start.lng, input.start.label]);
+
+  useEffect(() => {
+    const hasAddressText = addressQuery.trim().length > 0;
+    setShowMapPreview(hasAddressText || hasResolvedLocation);
+  }, [addressQuery, hasResolvedLocation]);
 
   const resetResolvedLocation = () => {
     setHasResolvedLocation(false);
@@ -243,6 +250,8 @@ export default function GeneratorPage() {
     }
     return null;
   }, [cityFocus, hasResolvedLocation, input.city, input.start.label, resolvedCenter]);
+  const mapCenter = resolvedCenter ?? { lat: input.start.lat, lng: input.start.lng };
+  const mapZoom = 13;
 
   const countrySuggestions = useMemo(() => {
     if (stage !== "country") return [];
@@ -674,12 +683,31 @@ export default function GeneratorPage() {
             </div>
             <div className="flex h-full flex-col">
               <div className="flex-1 min-h-[320px] md:min-h-[420px]">
-                <Globe3D
-                  ref={globeRef}
-                  locked={hasResolvedLocation}
-                  selectedCountry={input.country}
-                  selectedCity={selectedCity ?? undefined}
-                />
+                <div className="relative h-full w-full">
+                  <div
+                    className={`absolute inset-0 transition-all duration-500 ease-out ${
+                      showMapPreview
+                        ? "opacity-0 scale-[1.03] pointer-events-none"
+                        : "opacity-100 scale-100"
+                    }`}
+                  >
+                    <Globe3D
+                      ref={globeRef}
+                      locked={hasResolvedLocation}
+                      selectedCountry={input.country}
+                      selectedCity={selectedCity ?? undefined}
+                    />
+                  </div>
+                  <div
+                    className={`absolute inset-0 transition-all duration-500 ease-out ${
+                      showMapPreview
+                        ? "opacity-100 scale-100"
+                        : "opacity-0 scale-[0.98] pointer-events-none"
+                    }`}
+                  >
+                    <MapCorridor embedded showHeader={false} initialCenter={mapCenter} initialZoom={mapZoom} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

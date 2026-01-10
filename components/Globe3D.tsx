@@ -23,7 +23,7 @@ const Globe = dynamic(async () => {
   const GlobeWithRef = forwardRef<GlobeMethods, GlobeProps>((props, ref) => {
     const localRef = useRef<GlobeMethods | undefined>(undefined);
 
-    useImperativeHandle(ref, () => localRef.current ?? null, []);
+    useImperativeHandle(ref, () => localRef.current!, []);
 
     return <GlobeComponent ref={localRef} {...props} />;
   });
@@ -245,7 +245,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     },
     ref
   ) => {
-    const globeRef = useRef<GlobeMethods | undefined>(undefined);
+    const globeRef = useRef<GlobeMethods | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lockedRef = useRef(locked);

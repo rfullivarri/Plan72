@@ -259,7 +259,9 @@ export default function GeneratorPage() {
     return null;
   }, [cityFocus, hasResolvedLocation, input.city, input.start.label, resolvedCenter]);
   const mapCenter = resolvedCenter ?? { lat: input.start.lat, lng: input.start.lng };
-  const mapZoom = 13;
+  const mapZoom = 12;
+  const mapFocus = hasResolvedLocation ? mapCenter : null;
+  const mapFocusZoom = 15;
 
   const countrySuggestions = useMemo(() => {
     if (stage !== "country") return [];
@@ -746,7 +748,15 @@ export default function GeneratorPage() {
                         : "opacity-0 scale-[0.98] pointer-events-none"
                     }`}
                   >
-                    <MapCorridor embedded showHeader={false} initialCenter={mapCenter} initialZoom={mapZoom} />
+                    <MapCorridor
+                      embedded
+                      showHeader={false}
+                      initialCenter={mapCenter}
+                      initialZoom={mapZoom}
+                      focusCenter={mapFocus ?? undefined}
+                      focusZoom={mapFocusZoom}
+                      lockOnFocus={Boolean(mapFocus)}
+                    />
                   </div>
                 </div>
               </div>

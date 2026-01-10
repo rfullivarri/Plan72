@@ -5,25 +5,37 @@ import {
   forwardRef,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   useState,
 } from "react";
 import type { Feature, Geometry } from "geojson";
 import { feature } from "topojson-client";
-import type { GlobeMethods, GlobeProps } from "react-globe.gl";
+import type { GlobeMethods } from "react-globe.gl";
 import * as THREE from "three";
+import type React from "react";
+import type { ComponentProps } from "react";
 
 import countriesData from "world-atlas/countries-110m.json";
 import { getCountryOptions, normalizeCountryInput } from "@/lib/countryData";
 
+type GlobeProps = ComponentProps<typeof import("react-globe.gl").default>;
+
+type GlobeWrappedProps = GlobeProps & {
+  globeRef: React.MutableRefObject<GlobeMethods | undefined>;
+};
+
 const Globe = dynamic(async () => {
-  const { default: GlobeComponent } = await import("react-globe.gl");
-  const GlobeWithRef = forwardRef<GlobeMethods, GlobeProps>((props, ref) => (
-    <GlobeComponent ref={ref} {...props} />
-  ));
-  GlobeWithRef.displayName = "GlobeWithRef";
-  return GlobeWithRef;
+  const mod = await import("react-globe.gl");
+  const GlobeComponent = mod.default;
+
+  function GlobeWrapped({ globeRef, ...props }: GlobeWrappedProps) {
+    return <GlobeComponent ref={globeRef} {...(props as GlobeProps)} />;
+  }
+
+  GlobeWrapped.displayName = "GlobeWrapped";
+  return GlobeWrapped;
 }, { ssr: false });
 
 export type Globe3DHandle = {
@@ -240,7 +252,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     },
     ref
   ) => {
-    const globeRef = useRef<GlobeMethods | null>(null);
+    const globeRef = useRef<GlobeMethods>();
     const containerRef = useRef<HTMLDivElement | null>(null);
     const lockedRef = useRef(locked);
     const reducedMotionRef = useRef(false);
@@ -446,54 +458,56 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       }, 50);
     }, []);
 
-    const focusCountryByInput = useCallback(
+    const tryFocusCountry = useCallback(
       (countryName: string) => {
-        console.info("[Globe3D] Calling globe.focusCountry =>", {
-          raw: countryName,
-          normalized: normalizeCountryInput(countryName),
-        });
-        console.info(
-          "[Globe3D] globeRef.current at focusCountry call =>",
-          Boolean(globeRef.current)
-        );
-        if (!isGlobeReadyRef.current) {
-          pendingCountryRef.current = countryName;
-          return;
-        }
+        const normalized = normalizeCountryInput(countryName);
+        console.info("[Globe3D] focusCountry input", { countryName, normalized });
 
         const match = resolveCountryFeature(countryName);
+        console.info("[Globe3D] focusCountry match", {
+          countryName,
+          match: Boolean(match),
+        });
         if (!match) {
-          pendingCountryRef.current = null;
           setHighlightedCountry(null);
         }
 
         const center = resolveCountryCenter(countryName, match);
         if (!center) {
-          pendingCountryRef.current = null;
-          return;
+          console.warn("[Globe3D] focusCountry no center", { countryName });
+          return false;
         }
 
-        pendingCountryRef.current = null;
+        if (
+          center.lat < -90 ||
+          center.lat > 90 ||
+          center.lng < -180 ||
+          center.lng > 180
+        ) {
+          console.warn("[Globe3D] focusCountry center out of range", {
+            countryName,
+            center,
+          });
+          return false;
+        }
+
+        console.info("[Globe3D] focusCountry center", { countryName, center });
         updateAutoRotate(false);
         setHighlightedCountry(match ? normalizeCountryInput(match.properties?.name) : null);
         animateToPoint(
           { lat: center.lat, lng: center.lng, altitude: COUNTRY_VIEW_ALTITUDE },
           1500
         );
+        return true;
       },
-      [
-        animateToPoint,
-        resolveCountryCenter,
-        resolveCountryFeature,
-        updateAutoRotate,
-      ]
+      [animateToPoint, resolveCountryCenter, resolveCountryFeature, updateAutoRotate]
     );
 
     const focusCountry = useCallback(
       (countryName: string) => {
-        focusCountryByInput(countryName);
+        tryFocusCountry(countryName);
       },
-      [focusCountryByInput]
+      [tryFocusCountry]
     );
 
     const focusCity = useCallback(
@@ -558,8 +572,18 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
         setHighlightedCountry(null);
         return;
       }
-      focusCountry(selectedCountry);
-    }, [focusCountry, selectedCountry]);
+
+      if (!isGlobeReady || !globeRef.current) {
+        pendingCountryRef.current = selectedCountry;
+        console.log("[Globe3D] pending focusCountry:", selectedCountry);
+        return;
+      }
+
+      const ok = tryFocusCountry(selectedCountry);
+      if (!ok) {
+        console.warn("[Globe3D] country not found:", selectedCountry);
+      }
+    }, [isGlobeReady, selectedCountry, tryFocusCountry]);
 
     useEffect(() => {
       if (selectedCity) focusCity(selectedCity.lat, selectedCity.lng);
@@ -675,7 +699,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
           </div>
         ) : globeSize.width > 0 && globeSize.height > 0 ? (
           <Globe
-            ref={globeRef}
+            globeRef={globeRef}
             backgroundColor="rgba(0,0,0,0)"
             width={globeSize.width}
             height={globeSize.height}
@@ -719,9 +743,16 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
               }
               if (pendingCountry) {
                 pendingCountryRef.current = null;
-                focusCountryByInput(pendingCountry);
+                const ok = tryFocusCountry(pendingCountry);
+                if (ok) return;
               }
-              if (!hasPending) {
+
+              if (selectedCountry) {
+                const ok = tryFocusCountry(selectedCountry);
+                if (ok) return;
+              }
+
+              if (!hasPending && !selectedCountry) {
                 updateAutoRotate(true);
                 animateToPoint(DEFAULT_VIEW, 0);
               }

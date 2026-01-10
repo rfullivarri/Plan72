@@ -52,9 +52,8 @@ export default function GeneratorPage() {
   }, [input.start.lat, input.start.lng, input.start.label]);
 
   useEffect(() => {
-    const hasAddressText = addressQuery.trim().length > 0;
-    setShowMapPreview(hasAddressText || hasResolvedLocation);
-  }, [addressQuery, hasResolvedLocation]);
+    setShowMapPreview(hasResolvedLocation);
+  }, [hasResolvedLocation]);
 
   const resetResolvedLocation = () => {
     setHasResolvedLocation(false);
@@ -228,7 +227,7 @@ export default function GeneratorPage() {
     setLngInput(result.lng.toString());
     setLabelInput(label);
     setResolvedCenter({ lat: result.lat, lng: result.lng });
-    setHasResolvedLocation(true);
+    setHasResolvedLocation(false);
     setCitySuggestions([]);
     setCityStatus("Ciudad seleccionada.");
   };

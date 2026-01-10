@@ -5,6 +5,16 @@ export type GeocodeResult = {
   boundingBox?: [number, number, number, number];
   type?: string;
   addresstype?: string;
+  address?: {
+    city?: string;
+    town?: string;
+    village?: string;
+    municipality?: string;
+    county?: string;
+    state?: string;
+    country?: string;
+    country_code?: string;
+  };
 };
 
 type GeocodeQueryOptions = {
@@ -66,6 +76,7 @@ export async function geocodeAddress(
     boundingbox?: [string, string, string, string];
     type?: string;
     addresstype?: string;
+    address?: GeocodeResult["address"];
   }>;
 
   lastRequestAt = Date.now();
@@ -88,6 +99,7 @@ export async function geocodeAddress(
       boundingBox,
       type: hit.type,
       addresstype: hit.addresstype,
+      address: hit.address,
     } satisfies GeocodeResult;
   });
 }

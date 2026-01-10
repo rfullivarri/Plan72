@@ -44,6 +44,15 @@ export default function GeneratorPage() {
   const addressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const addressRequestRef = useRef(0);
   const countryOptions = useMemo(() => getCountryOptions(), []);
+  const normalizeLocationValue = (value?: string) => {
+    if (!value) return "";
+    return value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  };
 
   useEffect(() => {
     setLatInput(input.start.lat.toString());
@@ -385,14 +394,47 @@ export default function GeneratorPage() {
       setLocationStatus("Buscando ubicación…");
       try {
         const isoCode = resolveCountryIsoCode(input.country)?.toLowerCase();
-        const results = await geocodeAddress(query, {
+        const addressContext = [query, input.city, input.country].filter((part) => part?.trim()).join(", ");
+        const results = await geocodeAddress(addressContext, {
           limit: 6,
           countryCodes: isoCode,
         });
         if (requestId !== addressRequestRef.current) return;
-        setGeocodeResults(results);
-        setSelectedGeocodeResult(results[0] ?? null);
-        setLocationStatus(results.length ? null : "No encontramos resultados. Ajusta la consulta.");
+        const normalizedCity = normalizeLocationValue(input.city);
+        const normalizedCountry = normalizeLocationValue(input.country);
+        const filteredResults = results.filter((result) => {
+          const displayName = normalizeLocationValue(result.displayName);
+          const address = result.address;
+          const cityCandidates = [
+            address?.city,
+            address?.town,
+            address?.village,
+            address?.municipality,
+            address?.county,
+          ]
+            .map((candidate) => normalizeLocationValue(candidate))
+            .filter(Boolean);
+          const countryCandidate = normalizeLocationValue(address?.country);
+          const matchesCity =
+            !normalizedCity ||
+            cityCandidates.some(
+              (candidate) =>
+                candidate === normalizedCity ||
+                candidate.includes(normalizedCity) ||
+                normalizedCity.includes(candidate)
+            ) ||
+            displayName.includes(normalizedCity);
+          const matchesCountry =
+            !normalizedCountry ||
+            countryCandidate === normalizedCountry ||
+            countryCandidate.includes(normalizedCountry) ||
+            normalizedCountry.includes(countryCandidate) ||
+            displayName.includes(normalizedCountry);
+          return matchesCity && matchesCountry;
+        });
+        setGeocodeResults(filteredResults);
+        setSelectedGeocodeResult(filteredResults[0] ?? null);
+        setLocationStatus(filteredResults.length ? null : "No encontramos resultados. Ajusta la consulta.");
       } catch (error) {
         if (requestId !== addressRequestRef.current) return;
         if (error instanceof Error && error.message === "RATE_LIMIT") {
@@ -410,7 +452,7 @@ export default function GeneratorPage() {
         clearTimeout(addressDebounceRef.current);
       }
     };
-  }, [addressQuery, input.country, stage]);
+  }, [addressQuery, input.city, input.country, stage]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-10 space-y-8">

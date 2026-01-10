@@ -67,10 +67,11 @@ type TopologyLike = {
 const GLOBE_COLOR = "#f0e6cf";
 const BORDER_COLOR = "#1b1a14";
 const HIGHLIGHT_COLOR = "#b35a2a";
+const HIGHLIGHT_FILL = "rgba(179, 90, 42, 0.28)";
 const IDLE_ROTATION_SPEED = 0.35;
 const DEFAULT_VIEW: PointOfView = { lat: 10, lng: -10, altitude: 1.6 };
-const COUNTRY_VIEW_ALTITUDE = 0.6;
-const CITY_VIEW_ALTITUDE = 0.9;
+const COUNTRY_VIEW_ALTITUDE = 0.42;
+const CITY_VIEW_ALTITUDE = 0.7;
 
 const FALLBACK_REGION_CODES = ["US", "ES", "FR", "CN", "NL"];
 
@@ -246,7 +247,6 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
   ) => {
     const globeRef = useRef<GlobeMethods | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
-    const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lockedRef = useRef(locked);
     const reducedMotionRef = useRef(false);
     const isGlobeReadyRef = useRef(false);
@@ -451,12 +451,6 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       }, 50);
     }, []);
 
-    const scheduleIdleReset = useCallback((delayMs = 1500) => {
-      if (lockedRef.current || reducedMotionRef.current) return;
-      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-      resetTimerRef.current = setTimeout(() => updateAutoRotate(true), delayMs);
-    }, [updateAutoRotate]);
-
     const focusCountryByInput = useCallback(
       (countryName: string) => {
         console.info("[Globe3D] Calling globe.focusCountry =>", {
@@ -491,13 +485,11 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
           { lat: center.lat, lng: center.lng, altitude: COUNTRY_VIEW_ALTITUDE },
           1500
         );
-        scheduleIdleReset(1500);
       },
       [
         animateToPoint,
         resolveCountryCenter,
         resolveCountryFeature,
-        scheduleIdleReset,
         updateAutoRotate,
       ]
     );
@@ -520,9 +512,8 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
         pendingCityRef.current = null;
         updateAutoRotate(false);
         animateToPoint({ lat, lng, altitude: CITY_VIEW_ALTITUDE }, 1400);
-        scheduleIdleReset(1500);
       },
-      [animateToPoint, scheduleIdleReset, updateAutoRotate]
+      [animateToPoint, updateAutoRotate]
     );
 
     const resetIdle = useCallback(() => {
@@ -550,7 +541,6 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     useEffect(() => {
       lockedRef.current = locked;
       if (locked) {
-        if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
         updateAutoRotate(false);
       } else {
         updateAutoRotate(true);
@@ -560,7 +550,6 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     useEffect(() => {
       reducedMotionRef.current = prefersReducedMotion;
       if (prefersReducedMotion) {
-        if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
         updateAutoRotate(false);
         return;
       }
@@ -633,12 +622,6 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       return () => observer.disconnect();
     }, []);
 
-    useEffect(() => {
-      return () => {
-        if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-      };
-    }, []);
-
     const pointsData = useMemo<GlobePoint[]>(() => {
       const points: GlobePoint[] = [];
       if (selectedCity) {
@@ -704,7 +687,10 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
             globeMaterial={globeMaterial}
             // Polygons (country outlines)
             polygonsData={countries}
-            polygonCapColor={() => "rgba(0,0,0,0)"}
+            polygonCapColor={(d) => {
+              const name = normalizeCountryInput((d as CountryFeature).properties?.name);
+              return name && name === highlightedCountry ? HIGHLIGHT_FILL : "rgba(0,0,0,0)";
+            }}
             polygonSideColor={() => "rgba(0,0,0,0)"}
             polygonStrokeColor={(d) => {
               const name = normalizeCountryInput((d as CountryFeature).properties?.name);

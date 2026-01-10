@@ -16,11 +16,11 @@ import {
 } from "@/lib/countryData";
 import { geocodeAddress, geocodeCitySuggestions, type GeocodeResult } from "@/lib/geocode";
 import { PlanInput } from "@/lib/schema";
-import dynamic from "next/dynamic";
+import dynamicImport from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 
-const MapCorridor = dynamic(() => import("@/components/MapCorridor"), { ssr: false });
+const MapCorridor = dynamicImport(() => import("@/components/MapCorridor"), { ssr: false });
 
 export default function GeneratorPage() {
   const { input, updateInput, loadCityPreset } = usePlan();

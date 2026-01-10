@@ -31,6 +31,7 @@ export default function GeneratorPage() {
   const [hasResolvedLocation, setHasResolvedLocation] = useState(false);
   const [resolvedCenter, setResolvedCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [citySuggestions, setCitySuggestions] = useState<GeocodeResult[]>([]);
+  const [selectedGeocodeResult, setSelectedGeocodeResult] = useState<GeocodeResult | null>(null);
   const [cityStatus, setCityStatus] = useState<string | null>(null);
   // Wizard state machine for Step 1: country -> city -> address -> confirmed.
   const [stage, setStage] = useState<"country" | "city" | "address" | "confirmed">("country");
@@ -38,6 +39,8 @@ export default function GeneratorPage() {
   const countryDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cityDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cityRequestRef = useRef(0);
+  const addressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const addressRequestRef = useRef(0);
   const countryOptions = useMemo(() => getCountryOptions(), []);
 
   useEffect(() => {
@@ -55,6 +58,7 @@ export default function GeneratorPage() {
     setAddressQuery("");
     setGeocodeResults([]);
     setLocationStatus(null);
+    setSelectedGeocodeResult(null);
     resetResolvedLocation();
   };
 
@@ -181,26 +185,11 @@ export default function GeneratorPage() {
   };
 
   const handleSearchLocation = async () => {
-    if (!addressQuery.trim()) {
-      setLocationStatus("Introduce una dirección o punto de interés.");
+    if (!selectedGeocodeResult) {
+      setLocationStatus("Selecciona una ubicación válida.");
       return;
     }
-    setLocationStatus("Buscando ubicación…");
-    try {
-      const results = await geocodeAddress(addressQuery);
-      setGeocodeResults(results);
-      if (results.length === 0) {
-        setLocationStatus("No encontramos resultados. Ajusta la consulta.");
-        return;
-      }
-      handleApplyLocation(results[0]);
-    } catch (error) {
-      if (error instanceof Error && error.message === "RATE_LIMIT") {
-        setLocationStatus("Espera un segundo antes de volver a buscar.");
-        return;
-      }
-      setLocationStatus("No se pudo geocodificar la ubicación.");
-    }
+    handleApplyLocation(selectedGeocodeResult);
   };
 
   const handleApplyCoordinates = () => {
@@ -363,6 +352,58 @@ export default function GeneratorPage() {
     };
   }, [input.city, input.country, stage]);
 
+  useEffect(() => {
+    if (stage !== "address") {
+      setGeocodeResults([]);
+      setLocationStatus(null);
+      setSelectedGeocodeResult(null);
+      return;
+    }
+
+    const query = addressQuery.trim();
+    if (!query) {
+      setGeocodeResults([]);
+      setLocationStatus(null);
+      setSelectedGeocodeResult(null);
+      return;
+    }
+
+    if (addressDebounceRef.current) {
+      clearTimeout(addressDebounceRef.current);
+    }
+
+    const requestId = ++addressRequestRef.current;
+    addressDebounceRef.current = setTimeout(async () => {
+      setLocationStatus("Buscando ubicación…");
+      try {
+        const isoCode = resolveCountryIsoCode(input.country)?.toLowerCase();
+        const results = await geocodeAddress(query, {
+          limit: 6,
+          countryCodes: isoCode,
+        });
+        if (requestId !== addressRequestRef.current) return;
+        setGeocodeResults(results);
+        setSelectedGeocodeResult(results[0] ?? null);
+        setLocationStatus(results.length ? null : "No encontramos resultados. Ajusta la consulta.");
+      } catch (error) {
+        if (requestId !== addressRequestRef.current) return;
+        if (error instanceof Error && error.message === "RATE_LIMIT") {
+          setLocationStatus("Espera un segundo antes de volver a buscar.");
+          return;
+        }
+        setLocationStatus("No se pudo geocodificar la ubicación.");
+        setGeocodeResults([]);
+        setSelectedGeocodeResult(null);
+      }
+    }, 360);
+
+    return () => {
+      if (addressDebounceRef.current) {
+        clearTimeout(addressDebounceRef.current);
+      }
+    };
+  }, [addressQuery, input.country, stage]);
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-10 space-y-8">
       <header id="how" className="manual-surface relative overflow-hidden px-6 py-8 sm:px-8">
@@ -522,6 +563,7 @@ export default function GeneratorPage() {
                       onChange={(e) => {
                         resetResolvedLocation();
                         setAddressQuery(e.target.value);
+                        setSelectedGeocodeResult(null);
                       }}
                       onKeyDown={(event) => handleStageKeyDown(event, handleConfirmAddress)}
                     />
@@ -536,7 +578,7 @@ export default function GeneratorPage() {
                       type="button"
                       className="ink-button"
                       onClick={handleSearchLocation}
-                      disabled={stage !== "confirmed"}
+                      disabled={stage !== "address"}
                     >
                       Use this location
                     </button>
@@ -549,10 +591,17 @@ export default function GeneratorPage() {
                     <div className="rounded-lg border-2 border-dashed border-ink/60 bg-[rgba(240,245,238,0.7)] p-3 text-sm">
                       <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Suggestions</p>
                       <ul className="mt-2 space-y-2">
-                        {geocodeResults.map((result) => (
+                        {geocodeResults.map((result) => {
+                          const isSelected =
+                            selectedGeocodeResult?.displayName === result.displayName &&
+                            selectedGeocodeResult?.lat === result.lat &&
+                            selectedGeocodeResult?.lng === result.lng;
+                          return (
                           <li
                             key={`${result.displayName}-${result.lat}-${result.lng}`}
-                            className="flex items-center justify-between gap-2"
+                            className={`flex items-center justify-between gap-2 rounded-lg border ${
+                              isSelected ? "border-olive bg-white/70" : "border-transparent"
+                            } p-2`}
                           >
                             <div>
                               <p className="font-semibold">{result.displayName}</p>
@@ -563,13 +612,16 @@ export default function GeneratorPage() {
                             <button
                               type="button"
                               className="ink-button"
-                              onClick={() => handleApplyLocation(result)}
-                              disabled={stage !== "confirmed"}
+                              onClick={() => {
+                                setSelectedGeocodeResult(result);
+                                setLocationStatus("Ubicación lista para aplicar.");
+                              }}
                             >
-                              Use this location
+                              Select
                             </button>
                           </li>
-                        ))}
+                          );
+                        })}
                       </ul>
                     </div>
                   )}

@@ -44,6 +44,7 @@ type MapLibreMap = {
   getSource: (id: string) => { setData: (data: RouteFeatureCollection) => void } | undefined;
   fitBounds: (bounds: MapLibreLngLatBounds, options?: { padding?: number | [number, number]; duration?: number }) => void;
   jumpTo: (options: { center: [number, number]; zoom?: number }) => void;
+  flyTo: (options: { center: [number, number]; zoom?: number; duration?: number }) => void;
   resize: () => void;
   isStyleLoaded: () => boolean;
 };
@@ -84,6 +85,9 @@ type MapCorridorProps = {
   className?: string;
   initialCenter?: { lat: number; lng: number };
   initialZoom?: number;
+  focusCenter?: { lat: number; lng: number };
+  focusZoom?: number;
+  lockOnFocus?: boolean;
 };
 
 const loadMapLibre = async () => {
@@ -118,6 +122,9 @@ export default function MapCorridor({
   className,
   initialCenter,
   initialZoom = 12,
+  focusCenter,
+  focusZoom,
+  lockOnFocus = false,
 }: MapCorridorProps) {
   const { plan, input } = usePlan();
   const mapCard = plan.mapCard;
@@ -233,6 +240,15 @@ export default function MapCorridor({
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
 
+    if (lockOnFocus && focusCenter) {
+      map.flyTo({
+        center: [focusCenter.lng, focusCenter.lat],
+        zoom: focusZoom ?? initialZoom,
+        duration: 800,
+      });
+      return;
+    }
+
     if (coords.length === 0) {
       if (initialCenter) {
         map.jumpTo({ center: [initialCenter.lng, initialCenter.lat], zoom: initialZoom });
@@ -283,7 +299,19 @@ export default function MapCorridor({
     const bounds = new maplibre.LngLatBounds(coords[0], coords[0]);
     coords.slice(1).forEach((coord) => bounds.extend(coord));
     map.fitBounds(bounds, { padding: 20, duration: 0 });
-  }, [maplibre, mapReady, mapError, corridor, input.resourceNodes, showResourceNodes, initialCenter, initialZoom]);
+  }, [
+    maplibre,
+    mapReady,
+    mapError,
+    corridor,
+    input.resourceNodes,
+    showResourceNodes,
+    initialCenter,
+    initialZoom,
+    focusCenter,
+    focusZoom,
+    lockOnFocus,
+  ]);
 
   useEffect(() => {
     if (!mapRef.current) return;

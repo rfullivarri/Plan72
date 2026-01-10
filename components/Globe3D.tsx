@@ -20,10 +20,10 @@ import { getCountryOptions, normalizeCountryInput } from "@/lib/countryData";
 
 const Globe = dynamic(async () => {
   const { default: GlobeComponent } = await import("react-globe.gl");
-  const GlobeWithRef = forwardRef<GlobeMethods, GlobeProps>((props, ref) => {
+  const GlobeWithRef = forwardRef<GlobeMethods | undefined, GlobeProps>((props, ref) => {
     const localRef = useRef<GlobeMethods | undefined>(undefined);
 
-    useImperativeHandle(ref, () => localRef.current!, []);
+    useImperativeHandle(ref, () => localRef.current, []);
 
     return <GlobeComponent ref={localRef} {...props} />;
   });

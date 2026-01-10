@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { usePlan } from "./PlanContext";
 
-const MAPLIBRE_STYLE = "https://demotiles.maplibre.org/style.json";
+const MAPLIBRE_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 const ROUTE_SOURCE_ID = "corridor-route";
 const ROUTE_LAYER_ID = "corridor-line";
 

@@ -259,9 +259,9 @@ export default function GeneratorPage() {
     return null;
   }, [cityFocus, hasResolvedLocation, input.city, input.start.label, resolvedCenter]);
   const mapCenter = resolvedCenter ?? { lat: input.start.lat, lng: input.start.lng };
-  const mapZoom = 12;
-  const mapFocus = hasResolvedLocation ? mapCenter : null;
-  const mapFocusZoom = 15;
+  const mapZoom = 13;
+  const mapFocus = resolvedCenter;
+  const mapFocusZoom = 16;
 
   const countrySuggestions = useMemo(() => {
     if (stage !== "country") return [];

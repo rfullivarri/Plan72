@@ -68,12 +68,10 @@ type TopologyLike = {
 const GLOBE_COLOR = "#f0e6cf";
 const BORDER_COLOR = "#1b1a14";
 const HIGHLIGHT_COLOR = "#b35a2a";
-const HIGHLIGHT_FILL = "rgba(255, 166, 82, 0.45)";
-const HIGHLIGHT_ALTITUDE = 0.06;
 const IDLE_ROTATION_SPEED = 0.35;
 const DEFAULT_VIEW: PointOfView = { lat: 10, lng: -10, altitude: 1.6 };
-const COUNTRY_VIEW_ALTITUDE = 0.28;
-const CITY_VIEW_ALTITUDE = 0.45;
+const COUNTRY_VIEW_ALTITUDE = 0.6;
+const CITY_VIEW_ALTITUDE = 0.9;
 
 const FALLBACK_REGION_CODES = ["US", "ES", "FR", "CN", "NL"];
 
@@ -709,20 +707,13 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
             globeMaterial={globeMaterial}
             // Polygons (country outlines)
             polygonsData={countries}
-            polygonCapColor={(d) => {
-              const name = normalizeCountryInput((d as CountryFeature).properties?.name);
-              if (name && name === highlightedCountry) return HIGHLIGHT_FILL;
-              return "rgba(0,0,0,0)";
-            }}
+            polygonCapColor={() => "rgba(0,0,0,0)"}
             polygonSideColor={() => "rgba(0,0,0,0)"}
             polygonStrokeColor={(d) => {
               const name = normalizeCountryInput((d as CountryFeature).properties?.name);
               return name && name === highlightedCountry ? HIGHLIGHT_COLOR : BORDER_COLOR;
             }}
-            polygonAltitude={(d) => {
-              const name = normalizeCountryInput((d as CountryFeature).properties?.name);
-              return name && name === highlightedCountry ? HIGHLIGHT_ALTITUDE : 0.005;
-            }}
+            polygonAltitude={0.005}
             // City point
             pointsData={pointsData}
             pointColor={(d) =>

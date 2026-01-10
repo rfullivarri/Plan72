@@ -16,8 +16,11 @@ import {
 } from "@/lib/countryData";
 import { geocodeAddress, geocodeCitySuggestions, type GeocodeResult } from "@/lib/geocode";
 import { PlanInput } from "@/lib/schema";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+
+const MapCorridor = dynamic(() => import("@/components/MapCorridor"), { ssr: false });
 
 export default function GeneratorPage() {
   const { input, updateInput, loadCityPreset } = usePlan();
@@ -32,6 +35,7 @@ export default function GeneratorPage() {
   const [resolvedCenter, setResolvedCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [citySuggestions, setCitySuggestions] = useState<GeocodeResult[]>([]);
   const [cityStatus, setCityStatus] = useState<string | null>(null);
+  const [showMapPreview, setShowMapPreview] = useState(false);
   // Wizard state machine for Step 1: country -> city -> address -> confirmed.
   const [stage, setStage] = useState<"country" | "city" | "address" | "confirmed">("country");
   const globeRef = useRef<Globe3DHandle | null>(null);
@@ -45,6 +49,10 @@ export default function GeneratorPage() {
     setLngInput(input.start.lng.toString());
     setLabelInput(input.start.label ?? "");
   }, [input.start.lat, input.start.lng, input.start.label]);
+
+  useEffect(() => {
+    setShowMapPreview(Boolean(addressQuery.trim()) || hasResolvedLocation);
+  }, [addressQuery, hasResolvedLocation]);
 
   const resetResolvedLocation = () => {
     setHasResolvedLocation(false);
@@ -628,12 +636,38 @@ export default function GeneratorPage() {
             </div>
             <div className="flex h-full flex-col">
               <div className="flex-1 min-h-[320px] md:min-h-[420px]">
-                <Globe3D
-                  ref={globeRef}
-                  locked={hasResolvedLocation}
-                  selectedCountry={input.country}
-                  selectedCity={selectedCity ?? undefined}
-                />
+                <div className="relative h-full w-full">
+                  <div
+                    className={`absolute inset-0 transition-all duration-500 ease-out ${
+                      showMapPreview
+                        ? "opacity-100 scale-100"
+                        : "opacity-0 scale-95 pointer-events-none"
+                    }`}
+                  >
+                    <MapCorridor
+                      embedded
+                      showHeader={false}
+                      showSummary={false}
+                      initialCenter={resolvedCenter ?? input.start}
+                      initialZoom={13}
+                      className="h-full"
+                    />
+                  </div>
+                  <div
+                    className={`absolute inset-0 transition-all duration-500 ease-out ${
+                      showMapPreview
+                        ? "opacity-0 scale-105 pointer-events-none"
+                        : "opacity-100 scale-100"
+                    }`}
+                  >
+                    <Globe3D
+                      ref={globeRef}
+                      locked={hasResolvedLocation}
+                      selectedCountry={input.country}
+                      selectedCity={selectedCity ?? undefined}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

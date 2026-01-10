@@ -70,6 +70,7 @@ const BORDER_COLOR = "#1b1a14";
 const HIGHLIGHT_COLOR = "#b35a2a";
 const IDLE_ROTATION_SPEED = 0.35;
 const DEFAULT_VIEW: PointOfView = { lat: 10, lng: -10, altitude: 1.6 };
+const COUNTRY_VIEW_ALTITUDE = 0.6;
 const CITY_VIEW_ALTITUDE = 0.9;
 
 const FALLBACK_REGION_CODES = ["US", "ES", "FR", "CN", "NL"];
@@ -488,7 +489,10 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
         pendingCountryRef.current = null;
         updateAutoRotate(false);
         setHighlightedCountry(match ? normalizeCountryInput(match.properties?.name) : null);
-        animateToPoint({ lat: center.lat, lng: center.lng, altitude: 1.3 }, 1500);
+        animateToPoint(
+          { lat: center.lat, lng: center.lng, altitude: COUNTRY_VIEW_ALTITUDE },
+          1500
+        );
         scheduleIdleReset(1500);
       },
       [

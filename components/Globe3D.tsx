@@ -41,7 +41,6 @@ type Globe3DProps = {
   selectedCountry?: string;
   selectedCity?: { name?: string; lat: number; lng: number };
   locked?: boolean;
-  lowMotion?: boolean;
   showDebugCenter?: boolean;
 };
 
@@ -241,7 +240,6 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       selectedCountry,
       selectedCity,
       locked = false,
-      lowMotion = false,
       showDebugCenter = false,
     },
     ref
@@ -250,7 +248,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     const containerRef = useRef<HTMLDivElement | null>(null);
     const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lockedRef = useRef(locked);
-    const reducedMotionRef = useRef(lowMotion);
+    const reducedMotionRef = useRef(false);
     const isGlobeReadyRef = useRef(false);
     const [highlightedCountry, setHighlightedCountry] = useState<string | null>(
       null
@@ -560,9 +558,8 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
     }, [locked, updateAutoRotate]);
 
     useEffect(() => {
-      const reducedMotion = lowMotion || prefersReducedMotion;
-      reducedMotionRef.current = reducedMotion;
-      if (reducedMotion) {
+      reducedMotionRef.current = prefersReducedMotion;
+      if (prefersReducedMotion) {
         if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
         updateAutoRotate(false);
         return;
@@ -570,7 +567,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       if (!lockedRef.current) {
         updateAutoRotate(true);
       }
-    }, [lowMotion, prefersReducedMotion, updateAutoRotate]);
+    }, [prefersReducedMotion, updateAutoRotate]);
 
     useEffect(() => {
       if (!selectedCountry) {

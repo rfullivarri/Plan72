@@ -187,7 +187,13 @@ export default function GeneratorPage() {
     }
     setLocationStatus("Buscando ubicación…");
     try {
-      const results = await geocodeAddress(addressQuery);
+      const iso = resolveCountryIsoCode(input.country);
+      const country = input.country.trim();
+      const query = !iso && country ? `${addressQuery}, ${country}` : addressQuery;
+      const results = await geocodeAddress(
+        query,
+        iso ? { countryCodes: iso.toLowerCase() } : undefined
+      );
       setGeocodeResults(results);
       if (results.length === 0) {
         setLocationStatus("No encontramos resultados. Ajusta la consulta.");

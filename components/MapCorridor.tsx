@@ -95,7 +95,7 @@ const loadMapLibre = async () => {
   }
 
   const maplibreModule = await import("maplibre-gl");
-  const resolved = (maplibreModule.default ?? maplibreModule) as MapLibreModule;
+  const resolved = (maplibreModule.default ?? maplibreModule) as unknown as MapLibreModule;
 
   return resolved;
 };

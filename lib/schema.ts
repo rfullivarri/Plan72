@@ -1,4 +1,4 @@
-export type ScenarioCode = "AIR" | "NUK" | "CIV" | "EQK" | "UNK";
+export type ScenarioCode = "AIR" | "NUK" | "CIV" | "EQK" | "UNK" | "MEM";
 export type MomentCode = "PRE" | "POST";
 export type PlanLevel = "BASIC" | "STANDARD" | "ADVANCED";
 export type StageKey = "STG0" | "STG1" | "STG2" | "STG3";

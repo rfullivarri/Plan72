@@ -1,4 +1,4 @@
-export const SCENARIO_CODES = ["AIR", "NUK", "CIV", "EQK", "UNK"] as const;
+export const SCENARIO_CODES = ["AIR", "NUK", "CIV", "EQK", "UNK", "MEM"] as const;
 export const MOMENT_CODES = ["PRE", "POST"] as const;
 export const PLAN_LEVELS = ["BASIC", "STANDARD", "ADVANCED"] as const;
 

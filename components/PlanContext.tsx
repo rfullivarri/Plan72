@@ -202,6 +202,7 @@ export function humanizeScenario(scenario: ScenarioCode) {
     CIV: "Civil",
     EQK: "Quake",
     UNK: "Unknown",
+    MEM: "Meme",
   };
   return map[scenario];
 }

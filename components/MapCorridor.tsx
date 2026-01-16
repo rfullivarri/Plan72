@@ -40,6 +40,8 @@ type MapCorridorProps = {
   className?: string;
   initialCenter?: { lat: number; lng: number };
   initialZoom?: number;
+  showStartMarker?: boolean;
+  initialMarkerLabel?: string;
   focusCenter?: { lat: number; lng: number };
   focusZoom?: number;
   lockOnFocus?: boolean;
@@ -74,6 +76,8 @@ export default function MapCorridor({
   className,
   initialCenter,
   initialZoom = 12,
+  showStartMarker = false,
+  initialMarkerLabel = "Start",
   focusCenter,
   focusZoom,
   lockOnFocus = false,
@@ -193,6 +197,15 @@ export default function MapCorridor({
     markersRef.current = [];
 
     if (lockOnFocus && focusCenter) {
+      if (showStartMarker) {
+        const marker = new maplibre.Marker({
+          element: createMarkerElement(initialMarkerLabel, "route"),
+          anchor: "bottom",
+        })
+          .setLngLat([focusCenter.lng, focusCenter.lat])
+          .addTo(map);
+        markersRef.current.push(marker);
+      }
       map.flyTo({
         center: [focusCenter.lng, focusCenter.lat],
         zoom: focusZoom ?? initialZoom,
@@ -203,6 +216,15 @@ export default function MapCorridor({
 
     if (coords.length === 0) {
       if (initialCenter) {
+        if (showStartMarker) {
+          const marker = new maplibre.Marker({
+            element: createMarkerElement(initialMarkerLabel, "route"),
+            anchor: "bottom",
+          })
+            .setLngLat([initialCenter.lng, initialCenter.lat])
+            .addTo(map);
+          markersRef.current.push(marker);
+        }
         map.jumpTo({ center: [initialCenter.lng, initialCenter.lat], zoom: initialZoom });
       }
       return;
@@ -260,6 +282,8 @@ export default function MapCorridor({
     showResourceNodes,
     initialCenter,
     initialZoom,
+    showStartMarker,
+    initialMarkerLabel,
     focusCenter,
     focusZoom,
     lockOnFocus,

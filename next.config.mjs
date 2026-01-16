@@ -12,10 +12,14 @@ const nextConfig = {
   basePath: "/Plan72",
   assetPrefix: "/Plan72/",
   trailingSlash: true,
-  webpack: (config) => {
-    config.resolve.alias = {
-      ...(config.resolve.alias ?? {}),
-    };
+  webpack: (config, { isServer }) => {
+    if (isServer || process.env.CI) {
+      config.resolve.alias = {
+        ...(config.resolve.alias ?? {}),
+        "maplibre-gl$": path.resolve(__dirname, "lib/maplibre-gl/dist/index.js"),
+        "maplibre-gl/dist/maplibre-gl.css": path.resolve(__dirname, "lib/maplibre-gl/dist/maplibre-gl.css"),
+      };
+    }
     return config;
   },
 };

@@ -156,4 +156,16 @@ export const scenarioMockContent: Record<ScenarioCode, ScenarioMock> = {
     do: ["Baterías preservadas", "Perfil bajo siempre", "Notas cortas y precisas"],
     dont: ["No compartas ubicación exacta", "No hagas ruido innecesario", "No ignores patrones locales"],
   },
+  MEM: {
+    title: "Apocalipsis meme",
+    blurb: "Zombis o alienígenas: humor sí, perímetro firme y rutas claras.",
+    stages: {
+      STG0: ["Refuerza accesos y ventanas", "Cuenta equipo y botiquín", "Asignar vigías alternos"],
+      STG1: ["Salir solo en parejas", "Marcar rutas con señales simples", "Monitorear cielo y radio"],
+      STG2: ["Definir señuelos y puntos seguros", "Guardar snacks y agua por turno", "Registrar avistamientos"],
+      STG3: ["Rotar descanso con guardia", "Moverse solo con luz", "Actualizar tablero de señales"],
+    },
+    do: ["Haz memes, no ruido", "Sellos claros en puertas", "Plan B visible"],
+    dont: ["No te separes del equipo", "No ignores alarmas raras", "No supongas que es ficción"],
+  },
 };

@@ -63,4 +63,15 @@ export const scenarioText: Record<ScenarioCode, { label: string; do: string[]; d
       STG3: ["Refresh map notes", "Rotate rest shifts", "Review trigger thresholds"],
     },
   },
+  MEM: {
+    label: "Meme outbreak",
+    do: ["Keep humor grounded", "Protect perimeter gaps", "Tag safe routes with symbols"],
+    dont: ["Split up without comms", "Ignore odd signals", "Assume it's a drill"],
+    stages: {
+      STG0: ["Lock entry points fast", "Assign lookout rotations", "Verify crew count"],
+      STG1: ["Move in pairs with cover", "Check sky and street noise", "Confirm rally point"],
+      STG2: ["Set decoy routes", "Inventory supplies and snacks", "Log sightings and patterns"],
+      STG3: ["Rotate sleep with a guard", "Plan daylight-only moves", "Update intel board daily"],
+    },
+  },
 };

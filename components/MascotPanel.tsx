@@ -17,6 +17,7 @@ export default function MascotPanel({ floating }: MascotPanelProps) {
     EQK: { label: "Grounded", detail: "Estructuras", orbClass: "mascot-orb--eqk" },
     UNK: { label: "Curioso", detail: "Observa", orbClass: "mascot-orb--unk" },
     CIV: { label: "Discreto", detail: "Perfil bajo", orbClass: "mascot-orb--unk" },
+    MEM: { label: "Caótico", detail: "Zombies/aliens", orbClass: "mascot-orb--mem" },
   };
 
   const mood = moodByScenario[primaryScenario] ?? moodByScenario.UNK;

@@ -27,6 +27,10 @@ const resourcePriority = {
     PRE: ["A", "C", "E"],
     POST: ["A", "C", "E"],
   },
+  MEM: {
+    PRE: ["D", "E", "A", "C"],
+    POST: ["D", "A", "C", "E"],
+  },
 } satisfies Record<ScenarioCode, Record<"PRE" | "POST", ResourceCode[]>>;
 
 const resourceLegendLabels: Record<ResourceCode, string> = {

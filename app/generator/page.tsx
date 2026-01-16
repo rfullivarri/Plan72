@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-static";
+
 import ScenarioSelector from "@/components/ScenarioSelector";
 import { usePlan } from "@/components/PlanContext";
 import Globe3D from "@/components/Globe3D";
@@ -29,6 +31,7 @@ export default function GeneratorPage() {
   const [labelInput, setLabelInput] = useState(input.start.label ?? "");
   const [hasResolvedLocation, setHasResolvedLocation] = useState(false);
   const [resolvedCenter, setResolvedCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [showMapPreview, setShowMapPreview] = useState(false);
   const [citySuggestions, setCitySuggestions] = useState<GeocodeResult[]>([]);
   const [selectedGeocodeResult, setSelectedGeocodeResult] = useState<GeocodeResult | null>(null);
   const [cityStatus, setCityStatus] = useState<string | null>(null);
@@ -57,21 +60,9 @@ export default function GeneratorPage() {
     setLabelInput(input.start.label ?? "");
   }, [input.start.lat, input.start.lng, input.start.label]);
 
-  const showMapPreview = useMemo(() => {
-    const addressValue = addressQuery.trim();
-    const hasAddress = addressValue.length >= 6;
-    const hasNumber = /\d/.test(addressValue);
-    const hasCenter =
-      resolvedCenter != null &&
-      Number.isFinite(resolvedCenter.lat) &&
-      Number.isFinite(resolvedCenter.lng);
-
-    if (!addressValue && !hasResolvedLocation && !hasCenter) {
-      return false;
-    }
-
-    return hasResolvedLocation === true || hasCenter || (hasAddress && hasNumber);
-  }, [addressQuery, hasResolvedLocation, resolvedCenter]);
+  useEffect(() => {
+    setShowMapPreview(hasResolvedLocation);
+  }, [hasResolvedLocation]);
 
   const resetResolvedLocation = () => {
     setHasResolvedLocation(false);
@@ -267,14 +258,10 @@ export default function GeneratorPage() {
     }
     return null;
   }, [cityFocus, hasResolvedLocation, input.city, input.start.label, resolvedCenter]);
-  const mapFallbackCenter = { lat: 41.3851, lng: 2.1734 };
-  const mapCenter = resolvedCenter ?? input.start ?? mapFallbackCenter;
-  const mapZoom = 14;
+  const mapCenter = resolvedCenter ?? { lat: input.start.lat, lng: input.start.lng };
+  const mapZoom = 13;
   const mapFocus = resolvedCenter;
   const mapFocusZoom = 16;
-  const mapMarker = mapCenter
-    ? { lat: mapCenter.lat, lng: mapCenter.lng, label: input.start.label ?? "Start" }
-    : undefined;
 
   const countrySuggestions = useMemo(() => {
     if (stage !== "country") return [];
@@ -766,7 +753,6 @@ export default function GeneratorPage() {
                       showHeader={false}
                       initialCenter={mapCenter}
                       initialZoom={mapZoom}
-                      marker={mapMarker}
                       focusCenter={mapFocus ?? undefined}
                       focusZoom={mapFocusZoom}
                       lockOnFocus={Boolean(mapFocus)}

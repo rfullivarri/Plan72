@@ -24,55 +24,11 @@ const emptyFeatureCollection: RouteFeatureCollection = {
   features: [],
 };
 
-type MapLibreLngLatBounds = {
-  extend: (coord: [number, number]) => MapLibreLngLatBounds;
-};
-
-type MapLibreMap = {
-  on: (event: string, callback: () => void) => void;
-  once: (event: string, callback: () => void) => void;
-  remove: () => void;
-  addControl: (control: unknown, position?: string) => void;
-  addSource: (id: string, source: { type: "geojson"; data: RouteFeatureCollection }) => void;
-  addLayer: (layer: {
-    id: string;
-    type: "line";
-    source: string;
-    layout?: { "line-join"?: string; "line-cap"?: string };
-    paint?: { "line-color"?: string; "line-width"?: number; "line-opacity"?: number };
-  }) => void;
-  getSource: (id: string) => { setData: (data: RouteFeatureCollection) => void } | undefined;
-  fitBounds: (bounds: MapLibreLngLatBounds, options?: { padding?: number | [number, number]; duration?: number }) => void;
-  jumpTo: (options: { center: [number, number]; zoom?: number }) => void;
-  flyTo: (options: { center: [number, number]; zoom?: number; duration?: number }) => void;
-  resize: () => void;
-  isStyleLoaded: () => boolean;
-};
-
-type MapLibreMarker = {
-  setLngLat: (coord: [number, number]) => MapLibreMarker;
-  setPopup: (popup: MapLibrePopup) => MapLibreMarker;
-  addTo: (map: MapLibreMap) => MapLibreMarker;
-  remove: () => void;
-};
-
-type MapLibrePopup = {
-  setText: (text: string) => MapLibrePopup;
-};
-
-type MapLibreModule = {
-  Map: new (options: {
-    container: HTMLElement;
-    style: string;
-    center: [number, number];
-    zoom: number;
-    attributionControl?: boolean;
-  }) => MapLibreMap;
-  Marker: new (options?: { element?: HTMLElement; anchor?: string }) => MapLibreMarker;
-  Popup: new (options?: { offset?: number }) => MapLibrePopup;
-  NavigationControl: new (options?: { showCompass?: boolean }) => unknown;
-  LngLatBounds: new (sw: [number, number], ne: [number, number]) => MapLibreLngLatBounds;
-};
+type MapLibreModule = typeof import("maplibre-gl");
+type MapLibreLngLatBounds = InstanceType<MapLibreModule["LngLatBounds"]>;
+type MapLibreMap = InstanceType<MapLibreModule["Map"]>;
+type MapLibreMarker = InstanceType<MapLibreModule["Marker"]>;
+type MapLibrePopup = InstanceType<MapLibreModule["Popup"]>;
 
 type MapCorridorProps = {
   embedded?: boolean;
@@ -95,7 +51,8 @@ const loadMapLibre = async () => {
   }
 
   const maplibreModule = await import("maplibre-gl");
-  const resolved = (maplibreModule.default ?? maplibreModule) as MapLibreModule;
+  // TS: ESM/CJS interop cast for dynamic import
+  const resolved = (maplibreModule.default ?? maplibreModule) as unknown as MapLibreModule;
 
   return resolved;
 };

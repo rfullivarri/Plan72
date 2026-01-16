@@ -23,6 +23,7 @@ declare class Map {
   getSource(id: string): { setData: (data: unknown) => void } | undefined;
   fitBounds(bounds: LngLatBounds, options?: { padding?: number | [number, number]; duration?: number }): void;
   jumpTo(options: { center: LngLatLike; zoom?: number }): void;
+  flyTo(options: { center: LngLatLike; zoom?: number; duration?: number }): void;
   resize(): void;
   isStyleLoaded(): boolean;
 }

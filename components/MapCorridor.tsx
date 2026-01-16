@@ -40,6 +40,7 @@ type MapCorridorProps = {
   className?: string;
   initialCenter?: { lat: number; lng: number };
   initialZoom?: number;
+  marker?: { lat: number; lng: number; label?: string };
   focusCenter?: { lat: number; lng: number };
   focusZoom?: number;
   lockOnFocus?: boolean;
@@ -74,6 +75,7 @@ export default function MapCorridor({
   className,
   initialCenter,
   initialZoom = 12,
+  marker,
   focusCenter,
   focusZoom,
   lockOnFocus = false,
@@ -192,18 +194,19 @@ export default function MapCorridor({
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
 
-    if (lockOnFocus && focusCenter) {
-      map.flyTo({
-        center: [focusCenter.lng, focusCenter.lat],
-        zoom: focusZoom ?? initialZoom,
-        duration: 800,
-      });
-      return;
-    }
-
     if (coords.length === 0) {
       if (initialCenter) {
         map.jumpTo({ center: [initialCenter.lng, initialCenter.lat], zoom: initialZoom });
+      }
+      if (marker && Number.isFinite(marker.lat) && Number.isFinite(marker.lng)) {
+        const markerLabel = marker.label ?? "Start";
+        const mapMarker = new maplibre.Marker({
+          element: createMarkerElement(markerLabel, "route"),
+          anchor: "bottom",
+        })
+          .setLngLat([marker.lng, marker.lat])
+          .addTo(map);
+        markersRef.current.push(mapMarker);
       }
       return;
     }
@@ -228,6 +231,22 @@ export default function MapCorridor({
       markersRef.current.push(marker);
     });
 
+    if (
+      marker &&
+      Number.isFinite(marker.lat) &&
+      Number.isFinite(marker.lng) &&
+      !coords.some(([lng, lat]) => lng === marker.lng && lat === marker.lat)
+    ) {
+      const markerLabel = marker.label ?? "Start";
+      const mapMarker = new maplibre.Marker({
+        element: createMarkerElement(markerLabel, "route"),
+        anchor: "bottom",
+      })
+        .setLngLat([marker.lng, marker.lat])
+        .addTo(map);
+      markersRef.current.push(mapMarker);
+    }
+
     if (showResourceNodes) {
       input.resourceNodes.forEach((node) => {
         const typeLabel = node.types[0] ?? "A";
@@ -241,6 +260,15 @@ export default function MapCorridor({
           .addTo(map);
         markersRef.current.push(marker);
       });
+    }
+
+    if (lockOnFocus && focusCenter) {
+      map.flyTo({
+        center: [focusCenter.lng, focusCenter.lat],
+        zoom: focusZoom ?? initialZoom,
+        duration: 800,
+      });
+      return;
     }
 
     if (coords.length === 1) {
@@ -260,6 +288,7 @@ export default function MapCorridor({
     showResourceNodes,
     initialCenter,
     initialZoom,
+    marker,
     focusCenter,
     focusZoom,
     lockOnFocus,

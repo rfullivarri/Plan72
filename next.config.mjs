@@ -13,7 +13,8 @@ const nextConfig = {
   assetPrefix: "/Plan72/",
   trailingSlash: true,
   webpack: (config, { isServer }) => {
-    if (isServer || process.env.CI) {
+    const shouldStubMapLibre = isServer || process.env.MAPLIBRE_STUB === "1";
+    if (shouldStubMapLibre) {
       config.resolve.alias = {
         ...(config.resolve.alias ?? {}),
         "maplibre-gl$": path.resolve(__dirname, "lib/maplibre-gl/dist/index.js"),

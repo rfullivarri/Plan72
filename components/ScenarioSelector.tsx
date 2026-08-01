@@ -5,70 +5,55 @@ import { ScenarioCode } from "@/lib/schema";
 import { usePlan } from "./PlanContext";
 
 const scenarios: { code: ScenarioCode; label: string; detail: string }[] = [
-  { code: "AIR", label: "Air", detail: "Particulado + gas" },
-  { code: "NUK", label: "Nuclear", detail: "Fallout / EMP" },
-  { code: "CIV", label: "Civil", detail: "Disturbios" },
-  { code: "EQK", label: "Quake", detail: "Infra dañada" },
-  { code: "UNK", label: "Unknown", detail: "Señal gris" },
+  { code: "CIV", label: "Inundación", detail: "Evita cauces, túneles y zonas bajas." },
+  { code: "AIR", label: "Incendio forestal", detail: "Reduce exposición a humo, vegetación y frentes de fuego." },
+  { code: "EQK", label: "Terremoto", detail: "Prioriza espacios abiertos y evita infraestructura dañada." },
+  { code: "UNK", label: "Tsunami", detail: "Busca altura y distancia respecto de la costa." },
+  { code: "NUK", label: "Conflicto o bombardeo", detail: "Reduce exposición y evita infraestructura crítica." },
 ];
 
 export default function ScenarioSelector({ showHeader = true }: { showHeader?: boolean }) {
   const { input, updateInput } = usePlan();
+  const selectedScenario = input.scenarios[0] ?? scenarios[0].code;
 
   return (
     <div className="space-y-4">
       {showHeader && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Scan</p>
-            <h3 className="font-display text-3xl leading-tight">Scenario intake</h3>
-            <p className="text-sm text-ink/70">Selecciona uno o varios; cada uno genera una carta A6.</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Emergencia</p>
+            <h3 className="font-display text-3xl leading-tight">¿Qué está pasando?</h3>
+            <p className="text-sm text-ink/70">
+              Elegí una emergencia. En el MVP, PLAN72 prepara una vista previa específica para ese escenario.
+            </p>
           </div>
           <span className="rounded-full border-2 border-ink px-3 py-1 text-xs font-mono bg-[rgba(179,90,42,0.1)]">
-            TVA CLOCK 72:00
+            72 HORAS
           </span>
         </div>
       )}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {scenarios.map((scenario) => {
-          const isActive = input.scenarios.includes(scenario.code);
-          const handleToggle = () => {
-            if (isActive) {
-              const remaining = input.scenarios.filter((code) => code !== scenario.code);
-              updateInput("scenarios", remaining.length > 0 ? remaining : [scenario.code]);
-              return;
-            }
 
-            updateInput("scenarios", [...input.scenarios, scenario.code]);
-          };
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {scenarios.map((scenario) => {
+          const isActive = selectedScenario === scenario.code;
+
           return (
             <button
               key={scenario.code}
-              onClick={handleToggle}
+              type="button"
+              onClick={() => updateInput("scenarios", [scenario.code])}
               aria-pressed={isActive}
               className={`card-frame group p-4 text-left transition hover:-translate-y-1 ${
-                isActive ? "border-ink bg-[rgba(179,90,42,0.12)]" : ""
+                isActive ? "border-ink bg-[rgba(179,90,42,0.16)]" : ""
               }`}
             >
-              <div className="flex items-center justify-between">
-                <div className="font-mono text-xs text-olive">{scenario.code}</div>
-                <span
-                  className={`rounded-full border-2 border-ink px-2 py-0.5 text-[10px] font-semibold ${
-                    isActive ? "bg-[rgba(27,26,20,0.05)]" : ""
-                  }`}
-                >
-                  {scenario.label}
-                </span>
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-olive">Ruta específica</span>
+                <span className={`h-3 w-3 rounded-full border-2 border-ink ${isActive ? "bg-ink" : "bg-transparent"}`} />
               </div>
-              <div className="mt-2 text-sm text-ink/80">{scenario.detail}</div>
-              <div className="mt-3 h-1.5 w-full bg-ink/10">
-                <div
-                  className={`h-full bg-gradient-to-r from-[var(--olive)] to-[var(--rust)] transition-all ${
-                    isActive ? "w-full" : "w-2/3 group-hover:w-full"
-                  }`}
-                />
-              </div>
-              {isActive && <div className="mt-3 text-xs font-mono text-olive">Selected</div>}
+              <h4 className="mt-3 font-display text-xl leading-tight">{scenario.label}</h4>
+              <p className="mt-2 text-sm text-ink/75">{scenario.detail}</p>
+              {isActive && <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-olive">Seleccionada</p>}
             </button>
           );
         })}

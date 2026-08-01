@@ -29,7 +29,28 @@ El usuario selecciona manualmente una de estas cinco emergencias:
 
 Cada emergencia puede conducir al mismo spot, pero la ruta y los criterios de seguridad cambian según el escenario.
 
-## 3. Ubicación inicial
+## 3. Alcance rápido del MVP
+
+El MVP debe ser visible, navegable y entendible antes de incorporar inteligencia avanzada.
+
+Para esta primera versión:
+
+- Las cinco emergencias aparecen como opciones seleccionables.
+- La emergencia seleccionada acompaña a la ruta y al plan.
+- Puede existir una recomendación mínima de equipamiento asociada a cada emergencia.
+- No es necesario cambiar toda la estética, el mapa 3D ni la ambientación visual según la emergencia.
+- No es necesario implementar todavía modelos avanzados de riesgo ni cálculos distintos de alta precisión por catástrofe.
+- El objetivo inmediato es que el usuario entienda qué hace PLAN72, pueda probar el flujo y vea un resultado concreto.
+
+Queda como mejora posterior:
+
+- Visuales específicos por emergencia.
+- Capas de riesgo diferenciadas.
+- Rutas realmente optimizadas con criterios geográficos propios de cada amenaza.
+- Recomendaciones avanzadas de equipamiento por escenario.
+- Más de un spot y selección automática del destino más apropiado.
+
+## 4. Ubicación inicial
 
 El usuario puede introducir:
 
@@ -43,7 +64,7 @@ Después puede mover manualmente el punto de inicio en el mapa.
 
 PLAN72 no exige conocer el domicilio exacto. La interfaz debe explicar que una ubicación aproximada es suficiente para probar el servicio.
 
-## 4. Privacidad y persistencia
+## 5. Privacidad y persistencia
 
 ### Usuario no registrado
 
@@ -61,7 +82,7 @@ PLAN72 no exige conocer el domicilio exacto. La interfaz debe explicar que una u
 - Puede guardar una mochila preseleccionada.
 - Puede continuar configurando PLAN72 en diferentes sesiones.
 
-## 5. Preview y registro
+## 6. Preview y registro
 
 Antes de registrarse, el usuario ve solamente una vista previa parcial de la ruta.
 
@@ -77,7 +98,7 @@ La preview puede mostrar:
 
 Para acceder a la ruta completa, las instrucciones y el plan guardado, el usuario debe crear una cuenta o iniciar sesión.
 
-## 6. Navegación no lineal
+## 7. Navegación no lineal
 
 La landing no obliga a seguir un único flujo.
 
@@ -98,7 +119,7 @@ El usuario puede comenzar por:
 
 Mochila y plan son módulos independientes, pero deben completarse mutuamente.
 
-## 7. Mochilas y precios
+## 8. Mochilas y precios
 
 La landing mostrará tres mochilas base:
 
@@ -116,7 +137,7 @@ La configuración base siempre debe ser una solución válida. No debe parecer u
 
 La definición exacta del precio no es prioritaria para esta fase del MVP. Puede utilizarse temporalmente un precio orientativo o un marcador de contenido hasta cerrar composición y costes.
 
-## 8. Prioridad inmediata
+## 9. Prioridad inmediata
 
 La prioridad es construir y ajustar la landing existente.
 
@@ -126,7 +147,9 @@ Cada nueva decisión debe:
 2. Traducirse a contenido, interacción o estructura de la landing.
 3. Evitar crear documentos paralelos que no se reflejen en el producto.
 
-## 9. Flujo provisional del MVP
+El criterio de ejecución es: primero algo visible y utilizable; después se mejoran las partes débiles con iteraciones concretas.
+
+## 10. Flujo provisional del MVP
 
 1. El usuario entra en la landing.
 2. Puede explorar mochilas o comenzar una ruta.

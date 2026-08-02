@@ -16,106 +16,92 @@ const scenarios: {
   intensity: number;
 }[] = [
   {
-    code: "AIR",
-    label: "Air",
-    detail: "Particulado + gas",
-    icon: "🌫️",
-    accent: "from-sky-100/90 to-sky-50/40",
+    code: "CIV",
+    label: "Inundación",
+    detail: "Evita cauces, túneles y zonas bajas.",
+    icon: "🌊",
+    accent: "from-sky-100/90 to-cyan-50/40",
     glow: "bg-sky-300/40",
-    tag: "Atm",
-    signal: "Viento",
-    intensity: 68,
+    tag: "Agua",
+    signal: "Cota",
+    intensity: 74,
   },
   {
-    code: "NUK",
-    label: "Nuclear",
-    detail: "Fallout / EMP",
-    icon: "☢️",
-    accent: "from-amber-100/90 to-amber-50/40",
-    glow: "bg-amber-300/40",
-    tag: "Rad",
-    signal: "Pulso",
+    code: "AIR",
+    label: "Incendio forestal",
+    detail: "Reduce exposición a humo, vegetación y frentes de fuego.",
+    icon: "🔥",
+    accent: "from-orange-100/90 to-amber-50/40",
+    glow: "bg-orange-300/40",
+    tag: "Fuego",
+    signal: "Humo",
     intensity: 82,
   },
   {
-    code: "CIV",
-    label: "Civil",
-    detail: "Disturbios",
-    icon: "🛡️",
-    accent: "from-rose-100/90 to-rose-50/40",
-    glow: "bg-rose-300/40",
-    tag: "Riot",
-    signal: "Flujo",
-    intensity: 62,
-  },
-  {
     code: "EQK",
-    label: "Quake",
-    detail: "Infra dañada",
+    label: "Terremoto",
+    detail: "Prioriza espacios abiertos y evita infraestructura dañada.",
     icon: "🪨",
-    accent: "from-emerald-100/90 to-emerald-50/40",
+    accent: "from-emerald-100/90 to-lime-50/40",
     glow: "bg-emerald-300/40",
     tag: "Geo",
     signal: "Ondas",
-    intensity: 58,
+    intensity: 68,
   },
   {
     code: "UNK",
-    label: "Unknown",
-    detail: "Señal gris",
-    icon: "❓",
-    accent: "from-stone-100/90 to-stone-50/40",
-    glow: "bg-stone-300/40",
-    tag: "Gray",
-    signal: "Ruido",
-    intensity: 50,
+    label: "Tsunami",
+    detail: "Busca altura y distancia respecto de la costa.",
+    icon: "🌊",
+    accent: "from-blue-100/90 to-indigo-50/40",
+    glow: "bg-blue-300/40",
+    tag: "Costa",
+    signal: "Altura",
+    intensity: 88,
   },
   {
-    code: "MEM",
-    label: "Meme",
-    detail: "Zombies / invasión alienígena",
-    icon: "🧟‍♂️",
-    accent: "from-violet-100/90 to-lime-100/50",
-    glow: "bg-violet-300/40",
-    tag: "LOL",
-    signal: "Anomalía",
-    intensity: 76,
+    code: "NUK",
+    label: "Conflicto o bombardeo",
+    detail: "Reduce exposición y evita infraestructura crítica.",
+    icon: "🛡️",
+    accent: "from-rose-100/90 to-stone-50/40",
+    glow: "bg-rose-300/40",
+    tag: "Civil",
+    signal: "Cobertura",
+    intensity: 80,
   },
 ];
 
 export default function ScenarioSelector({ showHeader = true }: { showHeader?: boolean }) {
   const { input, updateInput } = usePlan();
+  const selectedScenario = input.scenarios[0] ?? scenarios[0].code;
 
   return (
     <div className="space-y-4">
       {showHeader && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Scan</p>
-            <h3 className="font-display text-3xl leading-tight">Scenario intake</h3>
-            <p className="text-sm text-ink/70">Selecciona uno o varios; cada uno genera una carta A6.</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-olive">Emergencia</p>
+            <h3 className="font-display text-3xl leading-tight">¿Qué está pasando?</h3>
+            <p className="text-sm text-ink/70">
+              Elegí una emergencia. PLAN72 prepara una vista previa de ruta específica para ese escenario.
+            </p>
           </div>
-          <span className="rounded-full border-2 border-ink px-3 py-1 text-xs font-mono bg-[rgba(179,90,42,0.1)]">
-            TVA CLOCK 72:00
+          <span className="rounded-full border-2 border-ink bg-[rgba(179,90,42,0.1)] px-3 py-1 text-xs font-mono">
+            72 HORAS
           </span>
         </div>
       )}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        {scenarios.map((scenario) => {
-          const isActive = input.scenarios.includes(scenario.code);
-          const handleToggle = () => {
-            if (isActive) {
-              const remaining = input.scenarios.filter((code) => code !== scenario.code);
-              updateInput("scenarios", remaining.length > 0 ? remaining : [scenario.code]);
-              return;
-            }
 
-            updateInput("scenarios", [...input.scenarios, scenario.code]);
-          };
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {scenarios.map((scenario) => {
+          const isActive = selectedScenario === scenario.code;
+
           return (
             <button
               key={scenario.code}
-              onClick={handleToggle}
+              type="button"
+              onClick={() => updateInput("scenarios", [scenario.code])}
               aria-pressed={isActive}
               className={`card-frame group relative overflow-hidden p-4 text-left transition duration-200 hover:-translate-y-1 ${
                 isActive
@@ -129,6 +115,7 @@ export default function ScenarioSelector({ showHeader = true }: { showHeader?: b
                 } ${isActive ? "scale-110" : "scale-100 group-hover:scale-110"}`}
                 aria-hidden
               />
+
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <span
@@ -137,7 +124,7 @@ export default function ScenarioSelector({ showHeader = true }: { showHeader?: b
                     {scenario.icon}
                   </span>
                   <div>
-                    <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-olive">{scenario.code}</div>
+                    <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-olive">Ruta específica</div>
                     <div className="text-base font-semibold text-ink">{scenario.label}</div>
                   </div>
                 </div>
@@ -146,16 +133,17 @@ export default function ScenarioSelector({ showHeader = true }: { showHeader?: b
                     isActive ? "bg-ink text-paper" : "bg-[rgba(255,255,255,0.75)] text-ink"
                   }`}
                 >
-                  {isActive ? "Selected" : scenario.tag}
+                  {isActive ? "Seleccionada" : scenario.tag}
                 </span>
               </div>
+
               <div className="mt-3 text-sm text-ink/80">{scenario.detail}</div>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em] text-olive">
                 <span className="rounded-md border-2 border-ink/60 bg-[rgba(245,232,204,0.6)] px-2 py-0.5">
-                  Signal {scenario.signal}
+                  Señal {scenario.signal}
                 </span>
                 <span className="rounded-md border-2 border-ink/60 bg-[rgba(255,255,255,0.6)] px-2 py-0.5">
-                  Impact {scenario.intensity}%
+                  Prioridad {scenario.intensity}%
                 </span>
               </div>
               <div className="mt-4 h-2 w-full rounded-full bg-ink/10">
@@ -164,7 +152,6 @@ export default function ScenarioSelector({ showHeader = true }: { showHeader?: b
                   style={{ width: `${isActive ? 100 : scenario.intensity}%` }}
                 />
               </div>
-              {isActive && <div className="mt-3 text-xs font-mono uppercase tracking-[0.2em] text-olive">Activo</div>}
             </button>
           );
         })}

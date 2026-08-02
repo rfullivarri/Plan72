@@ -1,56 +1,52 @@
 # Plan72
 
-Plan72 is a Next.js (App Router) project for generating actionable 72-hour protocols. The generator outputs exactly one
-printable card per catastrophe scenario (A6 by default, A7 optional) with:
+Plan72 is a product and service that helps two adults prepare to leave safely and sustain themselves for the first 72 hours of a real emergency.
 
-- Escape route summary from start through DP1..DP3 to the destination.
-- Stage actions for STG0..STG3, written as bullets.
-- Do/don&apos;t lists tailored to the scenario.
-- A simple map imprint with the key points so the card works offline.
+It combines:
 
-The site is only the generator plus export, and it also highlights the Survival brand offer: an emergency go-bag, stash kits
-A/B/C/D, and a maintenance service that includes printed/laminated cards.
+- A personalized starting point and evacuation-route simulation.
+- Initial route options, decision points, and priorities by stage.
+- A practical 72-hour preparation plan that can be reviewed and updated.
+- One go-bag per up to two adults, available in Essential, Prepared, and Advanced levels.
 
-## Getting Started
+## Current product definition
 
-Install dependencies and run the development server:
+Plan72 is not a generic survival checklist and it is not a fear-based or military product. It is a sober, practical readiness system: the accessible version of having a clear plan before you need one.
 
-```bash
-npm install
-npm run dev
-```
+The physical backpack is part of the system, not the product in isolation. Every level is designed around 72 hours for up to two adults; the difference is the amount of autonomy, comfort, and support included.
 
-Then open http://localhost:3000 in your browser.
+## MVP scope
 
-## Structure
+The MVP supports five emergency contexts:
 
-- `app/` – landing, generator, and results routes.
-- `components/` – shared UI primitives such as card previews and wizard helpers.
-- `lib/` – schema definitions, constants, and the placeholder plan engine.
-- `docs/` – product and design spec (see `PLAN72_REPO_SEED_SPEC.md`).
+1. Flood
+2. Wildfire
+3. Earthquake
+4. Tsunami
+5. Conflict or bombing
 
-## Product expectations
+The core journey is:
 
-- Landing page explains the single-card-per-scenario objective and shows the Survival brand upsell.
-- Generator guides you through city/level, scenario + moment, and assigning decision points (DP1..DP3) before export.
-- Results screen exports the card in A6 or A7 for print/lamination.
+1. Set country, city, and exact starting address.
+2. Select the emergency context.
+3. Review an initial route with decision points and alternatives.
+4. Receive the first 72-hour priorities and recommended equipment level.
+5. Save the plan so it can be updated as the user's location or group changes.
 
-## Design Notes
+## Landing principles
 
-- Typography uses Bebas Neue (display), Inter (body), and IBM Plex Mono (mono).
-- Theme colors follow the paper/ink/olive/rust palette described in the spec.
+The landing must clearly explain the system before selling the bag:
 
-## Deploying to GitHub Pages
+- Starting point → route → 72-hour priorities → right equipment.
+- Keep the interactive location and route simulation as the central product experience.
+- Show that the user receives an actionable plan, not just a map.
+- Present the three backpacks as the physical way to execute the plan.
+- Keep the tone premium, calm, realistic, and functional. Avoid apocalyptic, cinematic, retro-military, or fear-driven aesthetics.
 
-The project is configured for static export with a `basePath` and `assetPrefix` of `/Plan72`, matching the repository name. To publish the landing on GitHub Pages:
+## Safety
 
-1. Build the static site:
+Plan72 only offers lawful, safety-oriented guidance. It must not provide instructions for violence, unlawful entry, bypassing security, or using public spaces to conceal supplies. Any saved resources are user-owned places or locations explicitly shared by trusted contacts.
 
-   ```bash
-   npm run build
-   ```
+## Repository status
 
-   The exported site is written to `out/` and includes a `.nojekyll` marker so GitHub Pages will serve the `_next` assets.
-2. In GitHub, open **Settings → Pages** and review the **Source** configuration.
-3. If you use the static export, push the contents of `out/` to the `gh-pages` branch (for example, using `git subtree push --prefix out origin gh-pages`) and set Pages to serve from the `gh-pages` branch root.
-4. If you prefer to serve from `/docs`, move the contents of `out/` into `docs/` and update Pages to serve from the `/docs` folder.
+The historical seed specification has been removed. This README is the single current product source of truth.

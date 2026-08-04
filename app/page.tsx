@@ -43,7 +43,7 @@ export default function Home() {
         </div>
         <div className="p72-hero-art" aria-label="Equipo Plan72 preparado para una salida de 72 horas">
           <span className="p72-art-label">Ruta + protocolo + equipo</span>
-          <Image src="/Plan72/plan72-kit-transparent-v2.webp" alt="Mochila y equipo esencial Plan72, recortados sobre fondo transparente" width={1254} height={1254} priority />
+          <Image src="/Plan72/plan72-kit-transparent-v2.webp" alt="Mochila y equipo esencial Plan72, recortados sobre fondo transparente" width={1254} height={1254} priority unoptimized />
           <div className="p72-art-card"><span>72</span><p><small>PLAN PERSONAL</small>Todo listo para salir.</p></div>
         </div>
       </section>
@@ -61,7 +61,7 @@ export default function Home() {
 
       <section className="p72-outcome">
         <div className="p72-outcome-copy"><p className="p72-kicker">Cuando terminás la simulación</p><h2>No recibís una línea. Recibís un plan que podés leer de un vistazo.</h2><p>Origen, ruta, puntos para reevaluar y el equipo que sostiene cada decisión. Todo conectado en una sola vista.</p><Link href="/generator" className="p72-text-link">Ver el plan completo <span>↗</span></Link></div>
-        <div className="p72-outcome-art"><Image src="/Plan72/plan72-route-kit-v2.webp" alt="Mapa de ruta con puntos de decisión y tarjetas visuales de agua, primeros auxilios y refugio" width={1536} height={1024}/></div>
+        <div className="p72-outcome-art"><Image src="/Plan72/plan72-route-kit-v2.webp" alt="Mapa de ruta con puntos de decisión y tarjetas visuales de agua, primeros auxilios y refugio" width={1536} height={1024} unoptimized/></div>
       </section>
 
       <section className="p72-packs" id="mochilas">

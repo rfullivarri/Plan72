@@ -1,194 +1,79 @@
-import Link from "next/link";
+"use client";
 
-const backpacks = [
-  {
-    name: "Esencial",
-    description: "La base mínima para que dos adultos puedan salir a pie y mantenerse operativos durante 72 horas.",
-    features: ["Agua y potabilización", "Refugio básico", "Primeros auxilios", "Luz y señalización"],
-  },
-  {
-    name: "Preparada",
-    description: "Más autonomía, redundancia y comodidad para rutas más exigentes o escenarios inciertos.",
-    features: ["Sistemas de respaldo", "Mayor capacidad de agua", "Mejor refugio", "Más energía y reparación"],
-  },
-  {
-    name: "Avanzada",
-    description: "La configuración más completa para usuarios que necesitan mayor protección y capacidad operativa.",
-    features: ["Máxima redundancia", "Protección ampliada", "Autonomía reforzada", "Personalización avanzada"],
-  },
+import Image from "next/image";
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import LandingSimulator from "@/components/LandingSimulator";
+
+const packs = [
+  { name: "Esencial", price: 239, note: "Lo imprescindible, bien resuelto.", items: ["Agua y potabilización", "Refugio y abrigo", "Primeros auxilios", "Luz y señalización"] },
+  { name: "Preparada", price: 389, note: "Más autonomía y redundancia.", items: ["Todo lo esencial", "Energía de respaldo", "Cocina compacta", "Herramientas de reparación"], featured: true },
+  { name: "Avanzada", price: 549, note: "Cobertura para escenarios exigentes.", items: ["Todo lo anterior", "Protección ampliada", "Comunicaciones", "Módulos personalizables"] },
 ];
 
-const emergencies = ["Inundación", "Incendio forestal", "Terremoto", "Tsunami", "Conflicto o bombardeo"];
+function RouteIcon() {
+  return <svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="18" cy="59" r="7"/><circle cx="62" cy="20" r="7"/><path d="M22 54c8-15 17-4 23-15 4-7 3-14 11-16"/><path d="M27 61h30" className="thin"/></svg>;
+}
+function DecisionIcon() {
+  return <svg viewBox="0 0 80 80" aria-hidden="true"><path d="M18 66V36c0-12 9-21 21-21h22"/><path d="m51 6 10 9-10 9"/><path d="M39 36h22"/><path d="m51 27 10 9-10 9"/><circle cx="18" cy="67" r="6"/></svg>;
+}
+function PackIcon() {
+  return <svg viewBox="0 0 80 80" aria-hidden="true"><path d="M28 24v-5c0-8 5-12 12-12s12 4 12 12v5"/><rect x="18" y="22" width="44" height="51" rx="12"/><path d="M28 44h24M31 44v15h18V44M18 37H9v22h9M62 37h9v22h-9"/></svg>;
+}
 
 export default function Home() {
+  const [pack, setPack] = useState(1);
+  const [people, setPeople] = useState(2);
+  const total = useMemo(() => packs[pack].price * Math.ceil(people / 2), [pack, people]);
   return (
-    <main className="px-6 py-12">
-      <section className="manual-surface relative mx-auto max-w-6xl overflow-hidden px-6 py-12 sm:px-10 sm:py-14">
-        <div className="absolute -left-10 top-10 h-32 w-32 rotate-6 bg-[var(--rust)]/30 blur-3xl" aria-hidden />
-        <div className="absolute bottom-0 right-0 h-40 w-40 -rotate-6 bg-[var(--olive)]/30 blur-3xl" aria-hidden />
-        <div className="hero-grid" aria-hidden />
+    <main className="p72">
+      <header className="p72-nav">
+        <Link href="#inicio" className="p72-brand"><span>72</span>PLAN72</Link>
+        <nav aria-label="Navegación principal"><a href="#sistema">Cómo funciona</a><a href="#simulador">Simulador</a><a href="#mochilas">Mochilas</a></nav>
+        <Link href="/generator" className="p72-btn p72-btn-dark">Crear mi plan <span>↗</span></Link>
+      </header>
 
-        <div className="grid items-start gap-12 lg:grid-cols-[1.1fr,0.9fr]">
-          <div className="space-y-6">
-            <p className="ribbon-tag inline-flex">PLAN72 · EVACUACIÓN A PIE</p>
-            <h1 className="font-display text-5xl leading-tight sm:text-6xl">Tu ruta de escape para las próximas 72 horas.</h1>
-            <p className="max-w-2xl text-lg text-ink/80">
-              Indicá una zona aproximada, elegí la emergencia y obtené una vista previa de la ruta de menor exposición hacia un
-              spot seguro. Completá el plan con una mochila preparada para dos adultos.
-            </p>
-
-            <div className="grid gap-3 rounded-xl border-2 border-ink bg-[rgba(255,255,255,0.6)] p-4 sm:grid-cols-3">
-              {["Una mochila para dos adultos", "Ruta a pie según la emergencia", "Información útil sin depender de internet"].map(
-                (item) => (
-                  <div key={item} className="flex items-center gap-2 text-sm font-semibold">
-                    <span className="h-2 w-2 rounded-full bg-ink" />
-                    {item}
-                  </div>
-                ),
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Link className="ink-button" href="/generator">
-                Calcular mi ruta
-              </Link>
-              <Link className="ink-button" href="#mochilas">
-                Ver mochilas
-              </Link>
-            </div>
-
-            <p className="max-w-xl text-sm text-ink/65">
-              Podés probarlo sin registrarte. La ubicación no se guarda. Para desbloquear y conservar el plan completo vas a
-              necesitar una cuenta.
-            </p>
-          </div>
-
-          <div className="card-frame space-y-5 p-6">
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.25em] text-olive">VISTA PREVIA DEL PLAN</p>
-              <h2 className="font-display text-3xl">Qué vas a recibir</h2>
-            </div>
-            <dl className="grid gap-3 sm:grid-cols-2">
-              {[
-                ["Emergencia", "La que elijas"],
-                ["Origen", "Zona aproximada"],
-                ["Destino", "Spot MVP"],
-                ["Recorrido", "A pie"],
-                ["Duración", "Tiempo estimado"],
-                ["Equipo", "Mochila recomendada"],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-xl border-2 border-ink/60 bg-[rgba(255,255,255,0.62)] p-3">
-                  <dt className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">{label}</dt>
-                  <dd className="mt-1 font-semibold">{value}</dd>
-                </div>
-              ))}
-            </dl>
-            <div className="rounded-xl border-2 border-dashed border-ink p-4">
-              <p className="font-semibold">Vista parcial sin registro</p>
-              <p className="mt-1 text-sm text-ink/70">
-                Mostramos el inicio del recorrido, distancia, tiempo y destino. El plan completo se desbloquea al crear una cuenta.
-              </p>
-            </div>
-          </div>
+      <section className="p72-hero" id="inicio">
+        <div className="p72-hero-copy">
+          <p className="p72-kicker">Preparación personal para emergencias reales</p>
+          <h1>Una mochila no te dice a dónde ir.</h1>
+          <p className="p72-lead">Plan72 empieza por tu ubicación: define una salida posible y recién después arma el equipo para sostenerla durante las primeras 72 horas.</p>
+          <div className="p72-actions"><a href="#simulador" className="p72-btn p72-btn-dark">Probar mi ruta <span>↓</span></a><a href="#sistema" className="p72-btn p72-btn-light">Ver cómo funciona</a></div>
+          <ul className="p72-proof"><li>Para cualquier país y ciudad</li><li>Plan para dos personas</li><li>Sin improvisar</li></ul>
+        </div>
+        <div className="p72-hero-art" aria-label="Equipo Plan72 preparado para una salida de 72 horas">
+          <span className="p72-art-label">Ruta + protocolo + equipo</span>
+          <Image src="/Plan72/plan72-kit-transparent-v2.webp" alt="Mochila y equipo esencial Plan72, recortados sobre fondo transparente" width={1254} height={1254} priority />
+          <div className="p72-art-card"><span>72</span><p><small>PLAN PERSONAL</small>Todo listo para salir.</p></div>
         </div>
       </section>
 
-      <section className="mx-auto mt-12 max-w-6xl rounded-3xl border-4 border-ink bg-[rgba(255,255,255,0.78)] p-6 shadow-[14px_18px_0_rgba(27,26,20,0.18)]">
-        <div className="space-y-5">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.25em] text-olive">EMERGENCIAS DEL MVP</p>
-            <h2 className="font-display text-4xl">Una ruta específica para cada escenario.</h2>
-            <p className="mt-2 max-w-3xl text-ink/75">
-              En esta primera versión todas las rutas pueden terminar en el mismo spot. Lo que cambia es el criterio para llegar de
-              la forma más segura posible según la emergencia seleccionada.
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {emergencies.map((emergency) => (
-              <div key={emergency} className="card-frame p-4">
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Ruta específica</p>
-                <h3 className="mt-3 font-display text-xl leading-tight">{emergency}</h3>
-              </div>
-            ))}
-          </div>
+      <section className="p72-system" id="sistema">
+        <div className="p72-section-head"><div><p className="p72-kicker">No se trata de acumular cosas</p><h2>Primero entendé la salida.<br/>Después decidí qué llevar.</h2></div><p>Plan72 conecta tres decisiones que una lista genérica nunca puede resolver por vos.</p></div>
+        <div className="p72-system-grid">
+          <article><div className="p72-icon"><RouteIcon/></div><span>01</span><h3>Tu punto de partida</h3><p>El plan comienza donde estás, no en una ciudad abstracta.</p></article>
+          <article><div className="p72-icon"><DecisionIcon/></div><span>02</span><h3>Una ruta que se adapta</h3><p>Salida inicial, alternativas y momentos claros para volver a decidir.</p></article>
+          <article><div className="p72-icon"><PackIcon/></div><span>03</span><h3>Equipo que responde al plan</h3><p>Una mochila dimensionada para la ruta, el contexto y las personas.</p></article>
         </div>
       </section>
 
-      <section
-        id="how"
-        className="mx-auto mt-10 max-w-6xl rounded-3xl border-4 border-ink bg-[rgba(255,255,255,0.7)] p-6 shadow-[12px_16px_0_rgba(27,26,20,0.14)]"
-      >
-        <div className="grid gap-4 md:grid-cols-4">
-          {[
-            { title: "Ubicá tu zona", text: "Escribí una dirección, barrio o referencia y ajustá el punto en el mapa." },
-            { title: "Elegí la emergencia", text: "Seleccioná uno de los cinco escenarios incluidos en el MVP." },
-            { title: "Mirá la preview", text: "Visualizá el primer tramo, distancia, tiempo, destino y mochila recomendada." },
-            { title: "Desbloqueá el plan", text: "Registrate para guardar la ubicación y acceder al recorrido completo." },
-          ].map((step, index) => (
-            <div key={step.title} className="card-frame space-y-3 p-4">
-              <div className="font-mono text-xs text-olive">PASO {index + 1}</div>
-              <h3 className="font-display text-2xl">{step.title}</h3>
-              <p className="text-sm text-ink/80">{step.text}</p>
-            </div>
-          ))}
-        </div>
+      <LandingSimulator />
+
+      <section className="p72-outcome">
+        <div className="p72-outcome-copy"><p className="p72-kicker">Cuando terminás la simulación</p><h2>No recibís una línea. Recibís un plan que podés leer de un vistazo.</h2><p>Origen, ruta, puntos para reevaluar y el equipo que sostiene cada decisión. Todo conectado en una sola vista.</p><Link href="/generator" className="p72-text-link">Ver el plan completo <span>↗</span></Link></div>
+        <div className="p72-outcome-art"><Image src="/Plan72/plan72-route-kit-v2.webp" alt="Mapa de ruta con puntos de decisión y tarjetas visuales de agua, primeros auxilios y refugio" width={1536} height={1024}/></div>
       </section>
 
-      <section
-        id="mochilas"
-        className="mx-auto mt-10 max-w-6xl rounded-3xl border-4 border-ink bg-[rgba(255,255,255,0.82)] p-6 shadow-[12px_16px_0_rgba(27,26,20,0.14)]"
-      >
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.25em] text-olive">MOCHILAS BASE</p>
-            <h2 className="font-display text-4xl">Elegí cómo querés llegar preparado.</h2>
-            <p className="mt-2 max-w-3xl text-ink/75">
-              Las tres configuraciones son funcionales desde la base. Después vas a poder sumar módulos según tu ruta, clima o
-              situación personal.
-            </p>
-          </div>
-          <Link className="ink-button" href="/generator">
-            Primero quiero ver mi ruta
-          </Link>
+      <section className="p72-packs" id="mochilas">
+        <div className="p72-section-head"><div><p className="p72-kicker">La mochila viene después</p><h2>Elegí el nivel de autonomía.</h2></div><p>Todas las configuraciones parten de una base funcional. Ajustá la cobertura según tu realidad.</p></div>
+        <div className="p72-pack-grid">
+          {packs.map((item, index) => <button key={item.name} onClick={() => setPack(index)} className={pack === index ? "selected" : ""}><div className="p72-pack-radio"><i/>{item.featured && <em>Recomendada</em>}</div><h3>{item.name}</h3><p>{item.note}</p><strong>€{item.price}</strong><small>por kit / hasta 2 personas</small><ul>{item.items.map(x => <li key={x}>{x}</li>)}</ul></button>)}
         </div>
-
-        <div className="mt-6 grid gap-5 lg:grid-cols-3">
-          {backpacks.map((backpack) => (
-            <article key={backpack.name} className="card-frame flex h-full flex-col p-5">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">PLAN72</p>
-              <h3 className="mt-2 font-display text-3xl">{backpack.name}</h3>
-              <p className="mt-3 text-sm text-ink/75">{backpack.description}</p>
-              <ul className="mt-5 space-y-2 text-sm">
-                {backpack.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-ink" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-6 border-t-2 border-dashed border-ink/40 pt-4">
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-olive">Precio base</p>
-                <p className="mt-1 text-sm font-semibold">A definir durante la validación del MVP</p>
-              </div>
-              <Link className="ink-button mt-5" href="/generator">
-                Seleccionar {backpack.name}
-              </Link>
-            </article>
-          ))}
-        </div>
+        <div className="p72-config"><div><p className="p72-kicker">Tu configuración</p><h3>{packs[pack].name} · {people} {people === 1 ? "persona" : "personas"}</h3></div><div className="p72-stepper"><button aria-label="Quitar una persona" onClick={() => setPeople(Math.max(1, people - 1))}>−</button><span>{people}</span><button aria-label="Agregar una persona" onClick={() => setPeople(Math.min(8, people + 1))}>+</button></div><div className="p72-total"><small>Estimación</small><strong>€{total}</strong></div><Link href="/generator" className="p72-btn p72-btn-dark">Crear este plan ↗</Link></div>
       </section>
 
-      <section className="mx-auto mt-10 max-w-6xl rounded-3xl border-4 border-ink bg-ink p-8 text-[var(--paper)] shadow-[12px_16px_0_rgba(27,26,20,0.14)]">
-        <div className="flex flex-wrap items-center justify-between gap-5">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-[0.25em] text-[var(--paper)]/70">PLAN72 MVP</p>
-            <h2 className="mt-2 font-display text-4xl">Primero la ruta. Después, el plan completo.</h2>
-          </div>
-          <Link className="rounded-xl border-2 border-[var(--paper)] px-5 py-3 font-semibold" href="/generator">
-            Empezar simulación
-          </Link>
-        </div>
-      </section>
+      <section className="p72-final"><p className="p72-kicker">Tu primera decisión puede ser ahora</p><h2>En una emergencia, el plan no debería empezar con una compra.</h2><p>Debería empezar sabiendo desde dónde salís.</p><Link href="/generator" className="p72-btn p72-btn-cream">Ubicarme y empezar ↗</Link></section>
+      <footer><Link href="#inicio" className="p72-brand"><span>72</span>PLAN72</Link><p>Preparación clara para las primeras 72 horas.</p><small>© 2026 Plan72</small></footer>
     </main>
   );
 }

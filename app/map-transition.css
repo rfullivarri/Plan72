@@ -10,3 +10,13 @@
 @keyframes p72ZoomRing{0%{transform:scale(.45);opacity:0}25%{opacity:1}100%{transform:scale(2.2);opacity:0}}
 @keyframes p72MapReveal{from{opacity:0;transform:scale(1.08)}to{opacity:1;transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){.p72-map-stage .p72-globe,.p72-city-map-wrap,.p72-zoom-transition i{animation:none!important;transition:none!important}}
+
+/* Raster city map: avoids WebGL failures while keeping the city boundary exact. */
+.p72-raster-map{position:absolute;inset:0;width:100%;height:100%;filter:saturate(.72) contrast(1.06)}
+.p72-city-boundary{fill:rgba(190,224,103,.25);stroke:#4d743c;stroke-width:5;stroke-dasharray:12 7;vector-effect:non-scaling-stroke}
+.p72-route-preview{fill:none;stroke:#103d2b;stroke-width:7;stroke-linecap:round;stroke-dasharray:18 10;vector-effect:non-scaling-stroke}
+.p72-address-marker>path{fill:#0a281b;stroke:#fff;stroke-width:4;vector-effect:non-scaling-stroke}
+.p72-address-marker>circle:not(.p72-address-pulse){fill:var(--lime)}
+.p72-address-pulse{fill:rgba(190,234,104,.28);animation:p72PinPulse 1.8s ease-out infinite}
+.p72-map-credit{position:absolute;right:8px;bottom:6px;z-index:2;padding:3px 6px;border-radius:5px;background:rgba(255,255,255,.8);color:#435149;font-size:7px;text-decoration:none}
+@keyframes p72PinPulse{0%{r:18;opacity:.8}70%,100%{r:42;opacity:0}}

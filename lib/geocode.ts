@@ -1,8 +1,11 @@
+import type { Geometry } from "geojson";
+
 export type GeocodeResult = {
   lat: number;
   lng: number;
   displayName: string;
   boundingBox?: [number, number, number, number];
+  geojson?: Geometry;
   type?: string;
   addresstype?: string;
   address?: {
@@ -48,6 +51,7 @@ export async function geocodeAddress(
     q: trimmed,
     format: "json",
     addressdetails: "1",
+    polygon_geojson: "1",
     limit: limit.toString(),
   });
   if (options.countryCodes) {
@@ -74,6 +78,7 @@ export async function geocodeAddress(
     lon: string;
     display_name: string;
     boundingbox?: [string, string, string, string];
+    geojson?: Geometry;
     type?: string;
     addresstype?: string;
     address?: GeocodeResult["address"];
@@ -97,6 +102,7 @@ export async function geocodeAddress(
       lng: parseFloat(hit.lon),
       displayName: hit.display_name,
       boundingBox,
+      geojson: hit.geojson,
       type: hit.type,
       addresstype: hit.addresstype,
       address: hit.address,

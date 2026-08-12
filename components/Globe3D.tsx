@@ -46,7 +46,7 @@ export type Globe3DHandle = {
 
 type Globe3DProps = {
   selectedCountry?: string;
-  selectedCity?: { name?: string; lat: number; lng: number };
+  selectedCity?: { name?: string; lat: number; lng: number; boundary?: Geometry };
   locked?: boolean;
   showDebugCenter?: boolean;
 };
@@ -71,10 +71,11 @@ type TopologyLike = {
   objects: Record<string, unknown>;
 };
 
-const GLOBE_COLOR = "#f0e6cf";
-const BORDER_COLOR = "#1b1a14";
-const HIGHLIGHT_COLOR = "#b35a2a";
-const HIGHLIGHT_FILL = "rgba(179, 90, 42, 0.28)";
+const GLOBE_COLOR = "#f6f7f2";
+const BORDER_COLOR = "#99a59b";
+const HIGHLIGHT_COLOR = "#466f4b";
+const HIGHLIGHT_FILL = "rgba(190, 224, 103, 0.34)";
+const REGION_FILL = "rgba(70, 111, 75, 0.58)";
 const IDLE_ROTATION_SPEED = 0.35;
 const DEFAULT_VIEW: PointOfView = { lat: 10, lng: -10, altitude: 1.6 };
 const COUNTRY_VIEW_ALTITUDE = 0.7;
@@ -643,14 +644,6 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
 
     const pointsData = useMemo<GlobePoint[]>(() => {
       const points: GlobePoint[] = [];
-      if (selectedCity) {
-        points.push({
-          lat: selectedCity.lat,
-          lng: selectedCity.lng,
-          name: selectedCity.name,
-          type: "city",
-        });
-      }
       if (debugCenter) {
         points.push({
           lat: debugCenter.lat,
@@ -661,6 +654,15 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
       }
       return points;
     }, [debugCenter, selectedCity]);
+
+    const globePolygons = useMemo(() => {
+      if (!selectedCity?.boundary || (selectedCity.boundary.type !== "Polygon" && selectedCity.boundary.type !== "MultiPolygon")) return countries;
+      return [...countries, {
+        type: "Feature" as const,
+        properties: { name: selectedCity.name, selection: "region" },
+        geometry: selectedCity.boundary,
+      } as CountryFeature & { properties: { name?: string; selection: string } }];
+    }, [countries, selectedCity]);
 
     const showFallback = !isWebGlAvailable;
 
@@ -679,7 +681,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
               role="img"
               aria-label="Retro globe placeholder"
             >
-              <circle cx="90" cy="90" r="68" fill="#f0e6cf" stroke="#1b1a14" strokeWidth="3" />
+              <circle cx="90" cy="90" r="68" fill="#f6f7f2" stroke="#99a59b" strokeWidth="3" />
               <path
                 d="M90 22C104 34 112 60 112 90C112 120 104 146 90 158C76 146 68 120 68 90C68 60 76 34 90 22Z"
                 stroke="#1b1a14"
@@ -694,7 +696,7 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
               />
               <path d="M90 22V158" stroke="#1b1a14" strokeWidth="2" />
               <path d="M22 90H158" stroke="#1b1a14" strokeWidth="2" />
-              <circle cx="124" cy="84" r="6" fill="#b35a2a" />
+              <path d="M112 75l18 2 8 12-13 11-18-7z" fill="#466f4b" />
             </svg>
           </div>
         ) : globeSize.width > 0 && globeSize.height > 0 ? (
@@ -705,17 +707,21 @@ const Globe3D = forwardRef<Globe3DHandle, Globe3DProps>(
             height={globeSize.height}
             globeMaterial={globeMaterial}
             // Polygons (country outlines)
-            polygonsData={countries}
+            polygonsData={globePolygons}
             polygonCapColor={(d) => {
-              const name = normalizeCountryInput((d as CountryFeature).properties?.name);
+              const item = d as CountryFeature & { properties?: { name?: string; selection?: string } };
+              if (item.properties?.selection === "region") return REGION_FILL;
+              const name = normalizeCountryInput(item.properties?.name);
               return name && name === highlightedCountry ? HIGHLIGHT_FILL : "rgba(0,0,0,0)";
             }}
             polygonSideColor={() => "rgba(0,0,0,0)"}
             polygonStrokeColor={(d) => {
-              const name = normalizeCountryInput((d as CountryFeature).properties?.name);
+              const item = d as CountryFeature & { properties?: { name?: string; selection?: string } };
+              if (item.properties?.selection === "region") return HIGHLIGHT_COLOR;
+              const name = normalizeCountryInput(item.properties?.name);
               return name && name === highlightedCountry ? HIGHLIGHT_COLOR : BORDER_COLOR;
             }}
-            polygonAltitude={0.005}
+            polygonAltitude={(d) => (d as CountryFeature & { properties?: { selection?: string } }).properties?.selection === "region" ? 0.012 : 0.005}
             // City point
             pointsData={pointsData}
             pointColor={(d) =>

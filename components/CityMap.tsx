@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Geometry, Position } from "geojson";
 
 type CityMapProps = {
@@ -43,8 +43,32 @@ function geometryRings(geometry?: Geometry): Position[][] {
 }
 
 export default function CityMap({ city, center, boundingBox, boundary, address }: CityMapProps) {
+  const [streetRoutes, setStreetRoutes] = useState<Position[][]>([]);
+
+  useEffect(() => {
+    if (!address) {
+      setStreetRoutes([]);
+      return;
+    }
+    const controller = new AbortController();
+    const latScale = Math.max(0.45, Math.cos((address.lat * Math.PI) / 180));
+    const radius = 0.012;
+    const directions = [[0, 1], [1, 0], [0, -1], [-1, 0], [.72, .72], [-.72, .72], [.72, -.72], [-.72, -.72]];
+    Promise.all(directions.map(async ([dx, dy]) => {
+      const destinationLng = address.lng + (dx * radius) / latScale;
+      const destinationLat = address.lat + dy * radius;
+      const url = `https://router.project-osrm.org/route/v1/driving/${address.lng},${address.lat};${destinationLng},${destinationLat}?overview=full&geometries=geojson`;
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) return null;
+      const payload = await response.json() as { routes?: Array<{ geometry?: { coordinates?: Position[] } }> };
+      return payload.routes?.[0]?.geometry?.coordinates ?? null;
+    })).then((routes) => setStreetRoutes(routes.filter((route): route is Position[] => Boolean(route?.length))))
+      .catch(() => setStreetRoutes([]));
+    return () => controller.abort();
+  }, [address]);
+
   const scene = useMemo(() => {
-    const zoom = chooseZoom(center, boundingBox);
+    const zoom = address ? 15 : chooseZoom(center, boundingBox);
     const focus = address ? { lng: address.lng, lat: address.lat } : center;
     const focusPx = project(focus.lng, focus.lat, zoom);
     const origin = { x: focusPx.x - WIDTH / 2, y: focusPx.y - HEIGHT / 2 };
@@ -75,22 +99,23 @@ export default function CityMap({ city, center, boundingBox, boundary, address }
       return `${index ? "L" : "M"}${point.x.toFixed(1)},${point.y.toFixed(1)}`;
     }).join(" ") + (fallbackBox.length ? " Z" : "");
     const addressPoint = address ? toLocal([address.lng, address.lat]) : null;
-    return { zoom, tiles, perimeterPath: perimeterPath || fallbackPath, addressPoint };
+    return { zoom, origin, tiles, perimeterPath: perimeterPath || fallbackPath, addressPoint };
   }, [center, boundingBox, boundary, address]);
 
-  const route = scene.addressPoint
-    ? `M${scene.addressPoint.x},${scene.addressPoint.y} C${scene.addressPoint.x + 80},${scene.addressPoint.y - 55} ${scene.addressPoint.x + 145},${scene.addressPoint.y + 70} ${scene.addressPoint.x + 235},${scene.addressPoint.y - 25}`
-    : "";
+  const routePaths = useMemo(() => streetRoutes.map((route) => route.map(([lng, lat], index) => {
+    const point = project(lng, lat, scene.zoom);
+    return `${index ? "L" : "M"}${(point.x - scene.origin.x).toFixed(1)},${(point.y - scene.origin.y).toFixed(1)}`;
+  }).join(" ")), [scene.origin.x, scene.origin.y, scene.zoom, streetRoutes]);
 
   return (
-    <div className="p72-city-map-wrap">
+    <div className={`p72-city-map-wrap ${address ? "is-address-view" : ""}`}>
       <svg className="p72-raster-map" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} preserveAspectRatio="xMidYMid slice" role="img" aria-label={`Mapa urbano de ${city}`}>
         <rect width={WIDTH} height={HEIGHT} fill="#e7ebe5" />
         {scene.tiles.map((tile) => (
           <image key={`${tile.x}-${tile.y}`} href={`https://a.basemaps.cartocdn.com/light_all/${scene.zoom}/${tile.x}/${tile.y}.png`} x={tile.left} y={tile.top} width={TILE + 1} height={TILE + 1} preserveAspectRatio="none" />
         ))}
-        <path className="p72-city-boundary" d={scene.perimeterPath} fillRule="evenodd" />
-        {route && <path className="p72-route-preview" d={route} />}
+        {!address && <path className="p72-city-boundary" d={scene.perimeterPath} fillRule="evenodd" />}
+        {routePaths.map((route, index) => <path key={index} className="p72-route-preview" d={route} pathLength="1" style={{ animationDelay: `${index * 0.12}s` }} />)}
         {scene.addressPoint && (
           <g className="p72-address-marker" transform={`translate(${scene.addressPoint.x} ${scene.addressPoint.y})`}>
             <circle r="23" className="p72-address-pulse" />

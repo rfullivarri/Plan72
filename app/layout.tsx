@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./landing.css";
+import "./landing-v2.css";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { PlanProvider } from "@/components/PlanContext";
 

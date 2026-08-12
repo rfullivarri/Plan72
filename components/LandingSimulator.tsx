@@ -19,6 +19,7 @@ export default function LandingSimulator({ backpack, people }: { backpack: { id:
   const [countryName, setCountryName] = useState("España");
   const [city, setCity] = useState("");
   const [selectedCity, setSelectedCity] = useState<GeocodeResult | null>(null);
+  const [selectedRegion, setSelectedRegion] = useState<GeocodeResult | null>(null);
   const [cityResults, setCityResults] = useState<GeocodeResult[]>([]);
   const [address, setAddress] = useState("");
   const [selectedAddress, setSelectedAddress] = useState<GeocodeResult | null>(null);
@@ -40,7 +41,7 @@ export default function LandingSimulator({ backpack, people }: { backpack: { id:
     const normalized = country.toLocaleLowerCase();
     const match = countries.find((item) => item.label.toLocaleLowerCase() === normalized || item.name.toLocaleLowerCase() === normalized);
     if (!match) return setError("Elegí un país de la lista para continuar.");
-    setCountryName(match.label); setCountry(match.label); setStage(2); setCity(""); setSelectedCity(null); setCityResults([]); setError("");
+    setCountryName(match.label); setCountry(match.label); setStage(2); setCity(""); setSelectedCity(null); setSelectedRegion(null); setCityResults([]); setError("");
   }
 
   async function searchCity(value: string) {
@@ -56,7 +57,14 @@ export default function LandingSimulator({ backpack, people }: { backpack: { id:
 
   function chooseCity(hit: GeocodeResult) {
     const name = hit.address?.city || hit.address?.town || hit.address?.village || hit.displayName.split(",")[0];
-    setCity(name); setSelectedCity(hit); setCityResults([]); setAddress(""); setSelectedAddress(null); setMapTransition(true); setError("");
+    setCity(name); setSelectedCity(hit); setSelectedRegion(hit); setCityResults([]); setAddress(""); setSelectedAddress(null); setMapTransition(true); setError("");
+    const regionName = hit.address?.state || hit.address?.county;
+    if (regionName) {
+      const iso = resolveCountryIsoCode(countryName);
+      void geocodeAddress(`${regionName}, ${countryName}`, { countryCodes: iso?.toLowerCase(), limit: 1 })
+        .then(([region]) => region && setSelectedRegion(region))
+        .catch(() => undefined);
+    }
   }
 
   async function resolveAddress() {
@@ -108,7 +116,7 @@ export default function LandingSimulator({ backpack, people }: { backpack: { id:
         {error && <p className="p72-error" role="alert">{error}</p>}
         <p className="p72-enter-hint"><kbd>Enter ↵</kbd> también avanza</p>
       </div>
-      <div className={`p72-map-stage ${mapTransition ? "is-zooming" : ""}`}>{selectedCity && stage >= 3 ? <CityMap city={city} center={{ lat: selectedCity.lat, lng: selectedCity.lng }} boundingBox={selectedCity.boundingBox} boundary={selectedCity.geojson} address={selectedAddress ? { label: address, lat: selectedAddress.lat, lng: selectedAddress.lng } : null} /> : <div className="p72-globe"><Globe3D selectedCountry={countryName} selectedCity={selectedCity ? { name: city, lat: selectedCity.lat, lng: selectedCity.lng } : undefined} /><div className="p72-globe-label"><strong>{selectedCity ? city : countryName}</strong><span>{mapTransition ? "ACERCANDO AL PERÍMETRO URBANO" : "EXPLORÁ EL MAPA"}</span></div>{mapTransition && <div className="p72-zoom-transition"><i/><i/><span>Vista urbana 2D</span></div>}</div>}</div>
+      <div className={`p72-map-stage ${mapTransition ? "is-zooming" : ""}`}>{selectedCity && stage >= 3 ? <CityMap city={city} center={{ lat: selectedCity.lat, lng: selectedCity.lng }} boundingBox={selectedCity.boundingBox} boundary={selectedCity.geojson} address={selectedAddress ? { label: address, lat: selectedAddress.lat, lng: selectedAddress.lng } : null} /> : <div className="p72-globe"><Globe3D selectedCountry={countryName} selectedCity={selectedCity ? { name: selectedRegion?.address?.state || selectedRegion?.address?.county || city, lat: selectedCity.lat, lng: selectedCity.lng, boundary: selectedRegion?.geojson } : undefined} /><div className="p72-globe-label"><strong>{selectedCity ? city : countryName}</strong><span>{mapTransition ? "ACERCANDO AL PERÍMETRO URBANO" : "EXPLORÁ EL MAPA"}</span></div>{mapTransition && <div className="p72-zoom-transition"><i/><i/><span>Vista urbana 2D</span></div>}</div>}</div>
     </div>
     {loginOpen && <MockLogin onClose={() => setLoginOpen(false)} onContinue={saveWorkspace} />}
   </section>;

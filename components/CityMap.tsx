@@ -48,7 +48,9 @@ export default function CityMap({ city, center, boundingBox, boundary, address }
 
   useEffect(() => {
     import("maplibre-gl")
-      .then((module) => setLib((module.default ?? module) as unknown as MapLibreModule))
+      // MapLibre's default export is a function/class. React state setters treat a
+      // function argument as an updater, so wrap it to store the module itself.
+      .then((module) => setLib(() => (module.default ?? module) as unknown as MapLibreModule))
       .catch(() => setFailed(true));
   }, []);
 

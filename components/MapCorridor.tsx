@@ -165,7 +165,7 @@ export default function MapCorridor({
     const map = mapRef.current;
     const coords = corridor.map((point) => [point.lng, point.lat]) as [number, number][];
 
-    const source = map.getSource(ROUTE_SOURCE_ID);
+    const source = map.getSource(ROUTE_SOURCE_ID) as import("maplibre-gl").GeoJSONSource | undefined;
     if (source) {
       const routeFeature: RouteFeature | null =
         coords.length > 1

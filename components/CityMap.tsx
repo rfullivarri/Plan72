@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Geometry } from "geojson";
 
 type MapLibreModule = typeof import("maplibre-gl");
 type MapLibreMap = InstanceType<MapLibreModule["Map"]>;
@@ -10,6 +11,7 @@ type CityMapProps = {
   city: string;
   center: { lat: number; lng: number };
   boundingBox?: [number, number, number, number];
+  boundary?: Geometry;
   address?: { label: string; lat: number; lng: number } | null;
 };
 
@@ -26,20 +28,23 @@ const perimeter = (
   return [[west, south], [east, south], [east, north], [west, north], [west, south]];
 };
 
-function markerElement(kind: "city" | "address") {
+function markerElement() {
   const el = document.createElement("div");
-  el.className = `p72-map-pin p72-map-pin-${kind}`;
-  el.innerHTML = kind === "address" ? "<span></span>" : "<i></i>";
+  el.className = "p72-map-pin p72-map-pin-address";
+  el.innerHTML = "<span></span>";
   return el;
 }
 
-export default function CityMap({ city, center, boundingBox, address }: CityMapProps) {
+export default function CityMap({ city, center, boundingBox, boundary, address }: CityMapProps) {
   const container = useRef<HTMLDivElement | null>(null);
   const map = useRef<MapLibreMap | null>(null);
   const markers = useRef<MapLibreMarker[]>([]);
   const [lib, setLib] = useState<MapLibreModule | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const cityBoundary = boundary?.type === "Polygon" || boundary?.type === "MultiPolygon"
+    ? boundary
+    : undefined;
 
   useEffect(() => {
     import("maplibre-gl")
@@ -49,56 +54,75 @@ export default function CityMap({ city, center, boundingBox, address }: CityMapP
 
   useEffect(() => {
     if (!lib || !container.current || map.current || failed) return;
-    const instance = new lib.Map({
-      container: container.current,
-      style: STYLE,
-      center: [center.lng, center.lat],
-      zoom: 11.8,
-      attributionControl: false,
-    });
-    instance.addControl(new lib.NavigationControl({ showCompass: false }), "bottom-right");
-    instance.on("load", () => {
-      instance.addSource("city-perimeter", {
-        type: "geojson",
-        data: {
-          type: "Feature",
-          geometry: { type: "Polygon", coordinates: [perimeter({ lat: center.lat, lng: center.lng }, boundingBox)] },
-          properties: {},
-        },
+    let instance: MapLibreMap | null = null;
+    try {
+      instance = new lib.Map({
+        container: container.current,
+        style: STYLE,
+        center: [center.lng, center.lat],
+        zoom: 11.8,
+        attributionControl: false,
       });
-      instance.addLayer({
-        id: "city-fill",
-        type: "fill",
-        source: "city-perimeter",
-        paint: { "fill-color": "#b8d86b", "fill-opacity": 0.11 },
+      instance.addControl(new lib.NavigationControl({ showCompass: false }), "bottom-right");
+      instance.on("load", () => {
+        if (!instance) return;
+        instance.addSource("city-perimeter", {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            geometry: cityBoundary ?? { type: "Polygon", coordinates: [perimeter({ lat: center.lat, lng: center.lng }, boundingBox)] },
+            properties: {},
+          },
+        });
+        instance.addLayer({
+          id: "city-fill",
+          type: "fill",
+          source: "city-perimeter",
+          paint: { "fill-color": "#b8d86b", "fill-opacity": 0.16 },
+        });
+        instance.addLayer({
+          id: "city-outline",
+          type: "line",
+          source: "city-perimeter",
+          paint: { "line-color": "#4d743c", "line-width": 3, "line-opacity": 0.95 },
+        });
+        instance.addSource("preview-route", {
+          type: "geojson",
+          data: { type: "FeatureCollection", features: [] },
+        });
+        instance.addLayer({
+          id: "preview-route-line",
+          type: "line",
+          source: "preview-route",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#123426", "line-width": 5, "line-opacity": 0.9 },
+        });
+        if (boundingBox) {
+          const bounds = new lib.LngLatBounds(
+            [boundingBox[2], boundingBox[0]],
+            [boundingBox[3], boundingBox[1]],
+          );
+          instance.fitBounds(
+            bounds,
+            { padding: 58, duration: 0 },
+          );
+        }
+        setReady(true);
       });
-      instance.addLayer({
-        id: "city-outline",
-        type: "line",
-        source: "city-perimeter",
-        paint: { "line-color": "#63813d", "line-width": 2, "line-dasharray": [2, 2] },
-      });
-      instance.addSource("preview-route", {
-        type: "geojson",
-        data: { type: "FeatureCollection", features: [] },
-      });
-      instance.addLayer({
-        id: "preview-route-line",
-        type: "line",
-        source: "preview-route",
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": "#123426", "line-width": 5, "line-opacity": 0.9 },
-      });
-      setReady(true);
-    });
-    map.current = instance;
+      map.current = instance;
+    } catch (error) {
+      console.error("Plan72 city map failed to initialize", error);
+      instance?.remove();
+      setFailed(true);
+      return;
+    }
     return () => {
       markers.current.forEach((marker) => marker.remove());
       markers.current = [];
-      instance.remove();
+      instance?.remove();
       map.current = null;
     };
-  }, [lib, failed, center.lat, center.lng, boundingBox]);
+  }, [lib, failed, center.lat, center.lng, boundingBox, cityBoundary]);
 
   useEffect(() => {
     if (!lib || !map.current || !ready) return;
@@ -106,14 +130,9 @@ export default function CityMap({ city, center, boundingBox, address }: CityMapP
     markers.current.forEach((marker) => marker.remove());
     markers.current = [];
 
-    const cityMarker = new lib.Marker({ element: markerElement("city") })
-      .setLngLat([center.lng, center.lat])
-      .addTo(instance);
-    markers.current.push(cityMarker);
-
-    const routeSource = instance.getSource("preview-route");
+    const routeSource = instance.getSource("preview-route") as import("maplibre-gl").GeoJSONSource | undefined;
     if (address) {
-      const addressMarker = new lib.Marker({ element: markerElement("address"), anchor: "bottom" })
+      const addressMarker = new lib.Marker({ element: markerElement(), anchor: "bottom" })
         .setLngLat([address.lng, address.lat])
         .addTo(instance);
       markers.current.push(addressMarker);
@@ -132,9 +151,18 @@ export default function CityMap({ city, center, boundingBox, address }: CityMapP
       instance.flyTo({ center: [address.lng, address.lat], zoom: 13.6, duration: 900 });
     } else {
       routeSource?.setData({ type: "FeatureCollection", features: [] });
-      instance.flyTo({ center: [center.lng, center.lat], zoom: 11.8, duration: 900 });
+      if (boundingBox) {
+        const bounds = new lib.LngLatBounds(
+          [boundingBox[2], boundingBox[0]],
+          [boundingBox[3], boundingBox[1]],
+        );
+        instance.fitBounds(
+          bounds,
+          { padding: 58, duration: 650 },
+        );
+      }
     }
-  }, [lib, ready, center.lat, center.lng, address]);
+  }, [lib, ready, center.lat, center.lng, boundingBox, address]);
 
   if (failed) {
     return <div className="p72-map-fallback">No pudimos cargar el mapa urbano.</div>;
@@ -150,8 +178,8 @@ export default function CityMap({ city, center, boundingBox, address }: CityMapP
       </div>
       <div className="p72-map-legend">
         <span><i className="p72-legend-area" /> Área urbana</span>
-        <span><i className="p72-legend-start" /> Tu punto</span>
-        <span><i className="p72-legend-route" /> Ruta preliminar</span>
+        {address && <span><i className="p72-legend-start" /> Tu dirección</span>}
+        {address && <span><i className="p72-legend-route" /> Ruta preliminar</span>}
       </div>
     </div>
   );

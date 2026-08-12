@@ -1,0 +1,12 @@
+.p72-map-stage{overflow:hidden}
+.p72-map-stage .p72-globe{transition:transform 1.35s cubic-bezier(.2,.8,.2,1),filter 1.35s ease}
+.p72-map-stage.is-zooming .p72-globe{transform:scale(1.22);filter:saturate(1.15) brightness(1.06)}
+.p72-city-map-wrap{animation:p72MapReveal .65s cubic-bezier(.2,.8,.2,1) both}
+.p72-zoom-transition{position:absolute;inset:0;z-index:8;display:grid;place-items:center;pointer-events:none}
+.p72-zoom-transition i{position:absolute;width:180px;height:180px;border:1px solid rgba(200,234,114,.45);border-radius:50%;animation:p72ZoomRing 1.25s ease-out infinite}
+.p72-zoom-transition i:nth-child(2){animation-delay:.3s}
+.p72-zoom-transition span{padding:10px 14px;border-radius:999px;background:rgba(5,24,16,.76);border:1px solid rgba(255,255,255,.13);color:#edf4e9;font-size:9px;font-weight:850;letter-spacing:.13em;text-transform:uppercase;backdrop-filter:blur(9px)}
+.p72-sim-panel input:disabled{opacity:.7;cursor:wait}
+@keyframes p72ZoomRing{0%{transform:scale(.45);opacity:0}25%{opacity:1}100%{transform:scale(2.2);opacity:0}}
+@keyframes p72MapReveal{from{opacity:0;transform:scale(1.08)}to{opacity:1;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.p72-map-stage .p72-globe,.p72-city-map-wrap,.p72-zoom-transition i{animation:none!important;transition:none!important}}

@@ -13,7 +13,8 @@
 
 /* Raster city map: avoids WebGL failures while keeping the city boundary exact. */
 .p72-raster-map{position:absolute;inset:0;width:100%;height:100%;filter:saturate(.72) contrast(1.06)}
-.p72-city-boundary{fill:rgba(190,224,103,.25);stroke:#4d743c;stroke-width:5;stroke-dasharray:12 7;vector-effect:non-scaling-stroke}
+.p72-city-boundary{fill:rgba(190,224,103,.22);stroke:#4d743c;stroke-width:2.25;stroke-dasharray:7 5;vector-effect:non-scaling-stroke}
+.p72-globe{background:radial-gradient(circle at 50% 46%,#f8faf6 0,#eef2ec 62%,#dce4de 100%)!important}
 .p72-route-preview{fill:none;stroke:#103d2b;stroke-width:7;stroke-linecap:round;stroke-dasharray:18 10;vector-effect:non-scaling-stroke}
 .p72-address-marker>path{fill:#0a281b;stroke:#fff;stroke-width:4;vector-effect:non-scaling-stroke}
 .p72-address-marker>circle:not(.p72-address-pulse){fill:var(--lime)}

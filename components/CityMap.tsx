@@ -131,10 +131,14 @@ export default function CityMap({ city, center, boundingBox, boundary, address, 
     return { zoom, origin, tiles, perimeterPath: perimeterPath || fallbackPath, addressPoint, destinationPoint };
   }, [center, boundingBox, boundary, address, destination, mode]);
 
-  const routePaths = useMemo(() => streetRoutes.map((route) => route.map(([lng, lat], index) => {
-    const point = project(lng, lat, scene.zoom);
-    return `${index ? "L" : "M"}${(point.x - scene.origin.x).toFixed(1)},${(point.y - scene.origin.y).toFixed(1)}`;
-  }).join(" ")), [scene.origin.x, scene.origin.y, scene.zoom, streetRoutes]);
+  const routePaths = useMemo(() => streetRoutes.map((route) => {
+    const originCommand = scene.addressPoint ? `M${scene.addressPoint.x.toFixed(1)},${scene.addressPoint.y.toFixed(1)}` : "";
+    const streetCommands = route.map(([lng, lat], index) => {
+      const point = project(lng, lat, scene.zoom);
+      return `${scene.addressPoint || index ? "L" : "M"}${(point.x - scene.origin.x).toFixed(1)},${(point.y - scene.origin.y).toFixed(1)}`;
+    }).join(" ");
+    return `${originCommand} ${streetCommands}`.trim();
+  }), [scene.addressPoint, scene.origin.x, scene.origin.y, scene.zoom, streetRoutes]);
 
   const confirmedPath = useMemo(() => confirmedRoute.map(([lng, lat], index) => {
     const point = project(lng, lat, scene.zoom);

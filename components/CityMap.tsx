@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Geometry, Position } from "geojson";
 
 type CityMapProps = {
@@ -16,6 +16,8 @@ type CityMapProps = {
 const WIDTH = 1200;
 const HEIGHT = 760;
 const TILE = 256;
+const ROUTE_DELAYS = [0, 0.35, 0.8, 1.3, 0.18, 0.62, 1.05, 1.55];
+const ROUTE_DURATIONS = [6.4, 7.15, 6.75, 7.8, 7.35, 6.6, 8.1, 7.55];
 
 function project(lng: number, lat: number, zoom: number) {
   const scale = TILE * 2 ** zoom;
@@ -56,7 +58,6 @@ function geometryRings(geometry?: Geometry): Position[][] {
 export default function CityMap({ city, center, boundingBox, boundary, address, destination = null, mode = "alternatives" }: CityMapProps) {
   const [streetRoutes, setStreetRoutes] = useState<Position[][]>([]);
   const [confirmedRoute, setConfirmedRoute] = useState<Position[]>([]);
-  const radialMaskId = `p72-radial-${useId().replace(/:/g, "")}`;
 
   useEffect(() => {
     if (!address) {
@@ -151,32 +152,18 @@ export default function CityMap({ city, center, boundingBox, boundary, address, 
           <image key={`${tile.x}-${tile.y}`} href={`https://a.basemaps.cartocdn.com/light_all/${scene.zoom}/${tile.x}/${tile.y}.png`} x={tile.left} y={tile.top} width={TILE + 1} height={TILE + 1} preserveAspectRatio="none" />
         ))}
         {!address && <path className="p72-city-boundary" d={scene.perimeterPath} fillRule="evenodd" />}
-        {showAlternatives && scene.addressPoint && (
-          <defs>
-            <mask id={radialMaskId} maskUnits="userSpaceOnUse" x="0" y="0" width={WIDTH} height={HEIGHT}>
-              <rect width={WIDTH} height={HEIGHT} fill="black" />
-              <circle cx={scene.addressPoint.x} cy={scene.addressPoint.y} r="0" fill="white">
-                <animate
-                  attributeName="r"
-                  values="0;0;720;720;0"
-                  keyTimes="0;0.08;0.68;0.88;1"
-                  dur="5.2s"
-                  repeatCount="indefinite"
-                  calcMode="spline"
-                  keySplines=".2 .8 .2 1;.2 .8 .2 1;.2 .8 .2 1;.4 0 .8 .2"
-                />
-              </circle>
-            </mask>
-          </defs>
-        )}
-        {showAlternatives && <g className="p72-route-wave" mask={`url(#${radialMaskId})`}>
-          {routePaths.map((route, index) => <path key={index} className="p72-route-preview" d={route} />)}
+        {showAlternatives && <g className="p72-route-wave">
+          {routePaths.map((route, index) => <path
+            key={index}
+            className="p72-route-preview"
+            d={route}
+            pathLength="1"
+            style={{
+              animationDelay: `${ROUTE_DELAYS[index % ROUTE_DELAYS.length]}s`,
+              animationDuration: `${ROUTE_DURATIONS[index % ROUTE_DURATIONS.length]}s`,
+            }}
+          />)}
         </g>}
-        {showAlternatives && scene.addressPoint && (
-          <circle className="p72-expansion-front" cx={scene.addressPoint.x} cy={scene.addressPoint.y} r="0">
-            <animate attributeName="r" values="0;0;720;720;0" keyTimes="0;0.08;0.68;0.88;1" dur="5.2s" repeatCount="indefinite" />
-          </circle>
-        )}
         {showConfirmed && <>
           <path className="p72-confirmed-route-shadow" d={confirmedPath} pathLength="1" />
           <path className="p72-confirmed-route" d={confirmedPath} pathLength="1" />

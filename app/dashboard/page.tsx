@@ -3,7 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import CityMap from "@/components/CityMap";
 import styles from "./dashboard.module.css";
+import mapStyles from "./dashboard-map.module.css";
 
 const STORAGE_KEY = "plan72:workspace-v2";
 const disasterOptions = ["Incendio forestal", "Inundación", "Terremoto", "Tsunami", "Conflicto o bombardeo"];
@@ -25,6 +27,7 @@ type Workspace = {
   location: { country: string; city: string; address: string; lat: number; lng: number };
   savedAddresses?: string[];
   route: Point[];
+  routeConfirmed?: boolean;
   disasters: string[];
   backpack: { id: string; name: string; basePrice: number; extras: string[] };
   people?: number;
@@ -40,6 +43,7 @@ const demo: Workspace = {
     { label: "Punto de decisión 1", lat: 41.399, lng: 2.192 },
     { label: "Zona segura preliminar", lat: 41.415, lng: 2.215 },
   ],
+  routeConfirmed: false,
   disasters: ["Incendio forestal", "Inundación"],
   backpack: { id: "preparada", name: "Preparada", basePrice: 389, extras: [] }, people: 2,
   updatedAt: new Date().toISOString(),
@@ -86,6 +90,14 @@ export default function DashboardPage() {
     setNewAddress("");
   }
 
+  function confirmRoute() {
+    setWorkspace((current) => ({ ...current, routeConfirmed: true }));
+  }
+
+  function recalculateRoute() {
+    setWorkspace((current) => ({ ...current, routeConfirmed: false }));
+  }
+
   const initial = workspace.user.name.charAt(0).toUpperCase();
   return <main className={styles.shell}>
     <aside className={styles.sidebar}>
@@ -104,14 +116,14 @@ export default function DashboardPage() {
       <header className={styles.topbar}><div><span className={styles.breadcrumb}>MI PLAN / {workspace.location.city.toUpperCase()}</span><h1>Hola, {workspace.user.name}.</h1></div><div className={styles.user}><div><small>PLAN PERSONAL</small><strong>{workspace.location.city}, {workspace.location.country}</strong></div><span>{initial}</span></div></header>
 
       {section === "overview" && <section className={styles.page}>
-        <div className={styles.heroPanel}><div><span className={styles.eyebrow}>PLAN ACTIVO · 72 HORAS</span><h2>Tu salida empieza en<br/><em>{workspace.location.address}.</em></h2><p>La ruta preliminar está lista. Completá los escenarios y el equipo para cerrar tu primera versión del plan.</p><button onClick={() => setSection("route")}>Revisar mi ruta <span>→</span></button></div><RouteVisual city={workspace.location.city} /></div>
+        <div className={styles.heroPanel}><div><span className={styles.eyebrow}>PLAN ACTIVO · 72 HORAS</span><h2>Tu salida empieza en<br/><em>{workspace.location.address}.</em></h2><p>{workspace.routeConfirmed ? "Tu ruta confirmada ya conecta el punto de salida con la zona segura." : "Estamos explorando salidas posibles desde tu ubicación. Revisá las alternativas y confirmá una ruta."}</p><button onClick={() => setSection("route")}>Revisar mi ruta <span>→</span></button></div><DashboardMap workspace={workspace} mode={workspace.routeConfirmed ? "confirmed" : "alternatives"} /></div>
         <div className={styles.metrics}><article><small>PUNTO DE PARTIDA</small><strong>{workspace.location.address}</strong><span>{workspace.location.city}, {workspace.location.country}</span></article><article><small>ESCENARIOS ACTIVOS</small><strong>{workspace.disasters.length}</strong><span>{workspace.disasters.slice(0, 2).join(" · ")}</span></article><article><small>MOCHILA SELECCIONADA</small><strong>{workspace.backpack.name}</strong><span>Configuración actual · €{total}</span></article></div>
         <div className={styles.overviewGrid}><article className={styles.next}><span>PRÓXIMO PASO RECOMENDADO</span><h3>Revisá el punto seguro y agregá una ruta alternativa.</h3><p>Un buen plan no depende de una sola salida.</p><button onClick={() => setSection("route")}>Abrir ruta →</button></article><article className={styles.readiness}><span>ESTADO DEL PLAN</span><div className={styles.ring}><strong>72%</strong></div><ul><li className={styles.done}>Ubicación definida</li><li className={styles.done}>Ruta preliminar</li><li>Ruta alternativa</li><li>Confirmar mochila</li></ul></article></div>
       </section>}
 
       {section === "route" && <section className={styles.page}>
-        <div className={styles.titleRow}><div><span>RUTA DE ESCAPE</span><h2>Desde dónde salís y hacia dónde vas.</h2></div><button className={styles.primary}>Recalcular ruta</button></div>
-        <div className={styles.routeGrid}><article className={styles.mapCard}><RouteVisual city={workspace.location.city} large /><div className={styles.mapOverlay}><span>RUTA PRELIMINAR</span><strong>6,8 km · 1 h 24 min a pie</strong></div></article><article className={styles.timeline}><span>ITINERARIO</span>{workspace.route.map((point, index) => <div key={point.label}><i>{index + 1}</i><p><strong>{point.label}</strong><small>{index === 0 ? workspace.location.address : index === workspace.route.length - 1 ? "Destino a confirmar" : "Reevaluar condiciones"}</small></p></div>)}</article></div>
+        <div className={styles.titleRow}><div><span>RUTA DE ESCAPE</span><h2>Desde dónde salís y hacia dónde vas.</h2><p>{workspace.routeConfirmed ? "La ruta elegida está guardada en tu plan." : "Las alternativas se expanden desde tu punto de partida. Confirmá una para fijar la zona segura."}</p></div><button className={styles.primary} onClick={workspace.routeConfirmed ? recalculateRoute : confirmRoute}>{workspace.routeConfirmed ? "Recalcular ruta" : "Confirmar esta ruta"}</button></div>
+        <div className={styles.routeGrid}><article className={styles.mapCard}><DashboardMap workspace={workspace} mode={workspace.routeConfirmed ? "confirmed" : "alternatives"} /><div className={styles.mapOverlay}><span>{workspace.routeConfirmed ? "RUTA CONFIRMADA" : "EXPLORANDO ALTERNATIVAS"}</span><strong>{workspace.routeConfirmed ? "Salida conectada · zona segura marcada" : "Onda radial · rutas sobre calles reales"}</strong></div></article><article className={styles.timeline}><span>ITINERARIO</span>{workspace.route.map((point, index) => <div key={point.label}><i>{index + 1}</i><p><strong>{point.label}</strong><small>{index === 0 ? workspace.location.address : index === workspace.route.length - 1 ? workspace.routeConfirmed ? "Zona segura confirmada" : "Destino a confirmar" : "Reevaluar condiciones"}</small></p></div>)}</article></div>
         <article className={styles.addresses}><div><span>DIRECCIONES GUARDADAS</span><h3>Puntos que forman parte de tu plan.</h3></div><div className={styles.addressList}>{workspace.savedAddresses?.map((item, index) => <div key={`${item}-${index}`}><b>{index === 0 ? "Casa" : `Punto ${index + 1}`}</b><span>{item}</span><em>{index === 0 ? "ORIGEN" : "GUARDADO"}</em></div>)}</div><div className={styles.addAddress}><input value={newAddress} onChange={(event) => setNewAddress(event.target.value)} onKeyDown={(event) => event.key === "Enter" && addAddress()} placeholder="Agregar otro punto de encuentro"/><button onClick={addAddress}>Agregar <span>↵</span></button></div></article>
       </section>}
 
@@ -128,6 +140,15 @@ export default function DashboardPage() {
   </main>;
 }
 
-function RouteVisual({ city, large = false }: { city: string; large?: boolean }) {
-  return <div className={`${styles.routeVisual} ${large ? styles.routeLarge : ""}`}><div className={styles.mapGrid}/><svg viewBox="0 0 620 360" aria-hidden="true"><path className={styles.road} d="M-30 300 C100 245 105 110 240 140 S390 310 680 75"/><path className={styles.routeLine} d="M70 278 C145 235 137 150 242 156 S370 277 545 112"/><circle cx="70" cy="278" r="12"/><circle cx="242" cy="156" r="8"/><circle cx="545" cy="112" r="12"/></svg><span className={styles.mapCity}>{city.toUpperCase()}</span><span className={styles.startLabel}>SALIDA</span><span className={styles.safeLabel}>ZONA SEGURA</span></div>;
+function DashboardMap({ workspace, mode }: { workspace: Workspace; mode: "alternatives" | "confirmed" }) {
+  const destination = workspace.route.at(-1);
+  return <div className={mapStyles.dashboardMap}>
+    <CityMap
+      city={workspace.location.city}
+      center={{ lat: workspace.location.lat, lng: workspace.location.lng }}
+      address={{ label: workspace.location.address, lat: workspace.location.lat, lng: workspace.location.lng }}
+      destination={destination ? { label: destination.label, lat: destination.lat, lng: destination.lng } : null}
+      mode={mode}
+    />
+  </div>;
 }

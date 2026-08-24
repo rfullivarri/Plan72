@@ -18,6 +18,14 @@
 .p72-route-preview{fill:none;stroke:#2f774b;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;opacity:.9;filter:drop-shadow(0 0 3px rgba(190,234,104,.5));vector-effect:non-scaling-stroke}
 .p72-route-wave{animation:p72RouteWave 5.2s ease-in-out infinite}
 .p72-expansion-front{fill:none;stroke:rgba(190,234,104,.7);stroke-width:4;opacity:0;filter:drop-shadow(0 0 8px rgba(190,234,104,.5));vector-effect:non-scaling-stroke;animation:p72ExpansionFront 5.2s ease-out infinite}
+.p72-confirmed-route-shadow,.p72-confirmed-route{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;stroke-dasharray:1;stroke-dashoffset:1;animation:p72ConfirmedRouteDraw 2.8s cubic-bezier(.2,.82,.2,1) forwards}
+.p72-confirmed-route-shadow{stroke:rgba(255,255,255,.92);stroke-width:12}
+.p72-confirmed-route{stroke:#21653e;stroke-width:6;filter:drop-shadow(0 0 5px rgba(190,234,104,.75))}
+.p72-safe-marker{opacity:0;animation:p72SafeMarkerIn .45s ease-out 2.55s forwards}
+.p72-safe-core{fill:#0a281b;stroke:#c8ea72;stroke-width:7;vector-effect:non-scaling-stroke}
+.p72-safe-pulse{fill:rgba(200,234,114,.2);stroke:#c8ea72;stroke-width:2;vector-effect:non-scaling-stroke;animation:p72SafePulse 2.2s ease-out 2.8s infinite}
+.p72-safe-marker path{fill:none;stroke:#c8ea72;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.p72-safe-marker text{fill:#123624;font-size:12px;font-weight:900;letter-spacing:2px;paint-order:stroke;stroke:rgba(255,255,255,.95);stroke-width:7px;stroke-linejoin:round}
 .p72-address-marker>path{fill:#0a281b;stroke:#fff;stroke-width:4;vector-effect:non-scaling-stroke}
 .p72-address-marker>circle:not(.p72-address-pulse){fill:var(--lime)}
 .p72-address-pulse{fill:rgba(190,234,104,.36);animation:p72PinPulse 2.15s ease-out infinite}
@@ -25,5 +33,9 @@
 @keyframes p72PinPulse{0%{r:18;opacity:.8}70%,100%{r:42;opacity:0}}
 @keyframes p72RouteWave{0%,7%,100%{opacity:0}13%,78%{opacity:1}90%{opacity:0}}
 @keyframes p72ExpansionFront{0%,7%,100%{opacity:0}12%{opacity:.7}62%{opacity:.18}70%{opacity:0}}
+@keyframes p72ConfirmedRouteDraw{to{stroke-dashoffset:0}}
+@keyframes p72SafeMarkerIn{from{opacity:0}to{opacity:1}}
+@keyframes p72SafePulse{0%{r:20;opacity:.8}75%,100%{r:44;opacity:0}}
 .p72-city-map-wrap.is-address-view .p72-raster-map{animation:p72StreetZoom .9s cubic-bezier(.2,.82,.2,1) both}
 @keyframes p72StreetZoom{from{opacity:.35;transform:scale(.82)}to{opacity:1;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.p72-confirmed-route-shadow,.p72-confirmed-route{animation:none;stroke-dashoffset:0}.p72-safe-marker{animation:none;opacity:1}.p72-safe-pulse{animation:none}}

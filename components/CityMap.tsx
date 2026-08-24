@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import type { Geometry, Position } from "geojson";
 
 type CityMapProps = {
@@ -9,6 +9,8 @@ type CityMapProps = {
   boundingBox?: [number, number, number, number];
   boundary?: Geometry;
   address?: { label: string; lat: number; lng: number } | null;
+  destination?: { label: string; lat: number; lng: number } | null;
+  mode?: "alternatives" | "confirmed";
 };
 
 const WIDTH = 1200;
@@ -35,6 +37,15 @@ function chooseZoom(center: CityMapProps["center"], box?: CityMapProps["bounding
   return center.lat > 60 ? 9 : 10;
 }
 
+function chooseRouteZoom(start: { lat: number; lng: number }, end: { lat: number; lng: number }) {
+  for (let zoom = 16; zoom >= 10; zoom -= 1) {
+    const startPx = project(start.lng, start.lat, zoom);
+    const endPx = project(end.lng, end.lat, zoom);
+    if (Math.abs(endPx.x - startPx.x) < WIDTH * 0.62 && Math.abs(endPx.y - startPx.y) < HEIGHT * 0.58) return zoom;
+  }
+  return 10;
+}
+
 function geometryRings(geometry?: Geometry): Position[][] {
   if (!geometry) return [];
   if (geometry.type === "Polygon") return geometry.coordinates;
@@ -42,12 +53,15 @@ function geometryRings(geometry?: Geometry): Position[][] {
   return [];
 }
 
-export default function CityMap({ city, center, boundingBox, boundary, address }: CityMapProps) {
+export default function CityMap({ city, center, boundingBox, boundary, address, destination = null, mode = "alternatives" }: CityMapProps) {
   const [streetRoutes, setStreetRoutes] = useState<Position[][]>([]);
+  const [confirmedRoute, setConfirmedRoute] = useState<Position[]>([]);
+  const radialMaskId = `p72-radial-${useId().replace(/:/g, "")}`;
 
   useEffect(() => {
     if (!address) {
       setStreetRoutes([]);
+      setConfirmedRoute([]);
       return;
     }
     const controller = new AbortController();
@@ -64,12 +78,25 @@ export default function CityMap({ city, center, boundingBox, boundary, address }
       return payload.routes?.[0]?.geometry?.coordinates ?? null;
     })).then((routes) => setStreetRoutes(routes.filter((route): route is Position[] => Boolean(route?.length))))
       .catch(() => setStreetRoutes([]));
+
+    if (destination) {
+      const routeUrl = `https://router.project-osrm.org/route/v1/driving/${address.lng},${address.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson`;
+      fetch(routeUrl, { signal: controller.signal })
+        .then((response) => response.ok ? response.json() : null)
+        .then((payload: { routes?: Array<{ geometry?: { coordinates?: Position[] } }> } | null) => setConfirmedRoute(payload?.routes?.[0]?.geometry?.coordinates ?? []))
+        .catch(() => setConfirmedRoute([]));
+    } else {
+      setConfirmedRoute([]);
+    }
     return () => controller.abort();
-  }, [address]);
+  }, [address, destination]);
 
   const scene = useMemo(() => {
-    const zoom = address ? 15 : chooseZoom(center, boundingBox);
-    const focus = address ? { lng: address.lng, lat: address.lat } : center;
+    const isConfirmedView = Boolean(address && destination && mode === "confirmed");
+    const zoom = isConfirmedView && address && destination ? chooseRouteZoom(address, destination) : address ? 15 : chooseZoom(center, boundingBox);
+    const focus = isConfirmedView && address && destination
+      ? { lng: (address.lng + destination.lng) / 2, lat: (address.lat + destination.lat) / 2 }
+      : address ? { lng: address.lng, lat: address.lat } : center;
     const focusPx = project(focus.lng, focus.lat, zoom);
     const origin = { x: focusPx.x - WIDTH / 2, y: focusPx.y - HEIGHT / 2 };
     const minTileX = Math.floor(origin.x / TILE);
@@ -99,13 +126,22 @@ export default function CityMap({ city, center, boundingBox, boundary, address }
       return `${index ? "L" : "M"}${point.x.toFixed(1)},${point.y.toFixed(1)}`;
     }).join(" ") + (fallbackBox.length ? " Z" : "");
     const addressPoint = address ? toLocal([address.lng, address.lat]) : null;
-    return { zoom, origin, tiles, perimeterPath: perimeterPath || fallbackPath, addressPoint };
-  }, [center, boundingBox, boundary, address]);
+    const destinationPoint = destination ? toLocal([destination.lng, destination.lat]) : null;
+    return { zoom, origin, tiles, perimeterPath: perimeterPath || fallbackPath, addressPoint, destinationPoint };
+  }, [center, boundingBox, boundary, address, destination, mode]);
 
   const routePaths = useMemo(() => streetRoutes.map((route) => route.map(([lng, lat], index) => {
     const point = project(lng, lat, scene.zoom);
     return `${index ? "L" : "M"}${(point.x - scene.origin.x).toFixed(1)},${(point.y - scene.origin.y).toFixed(1)}`;
   }).join(" ")), [scene.origin.x, scene.origin.y, scene.zoom, streetRoutes]);
+
+  const confirmedPath = useMemo(() => confirmedRoute.map(([lng, lat], index) => {
+    const point = project(lng, lat, scene.zoom);
+    return `${index ? "L" : "M"}${(point.x - scene.origin.x).toFixed(1)},${(point.y - scene.origin.y).toFixed(1)}`;
+  }).join(" "), [confirmedRoute, scene.origin.x, scene.origin.y, scene.zoom]);
+
+  const showAlternatives = mode === "alternatives" && Boolean(scene.addressPoint && routePaths.length);
+  const showConfirmed = mode === "confirmed" && Boolean(scene.addressPoint && scene.destinationPoint && confirmedPath);
 
   return (
     <div className={`p72-city-map-wrap ${address ? "is-address-view" : ""}`}>
@@ -115,9 +151,9 @@ export default function CityMap({ city, center, boundingBox, boundary, address }
           <image key={`${tile.x}-${tile.y}`} href={`https://a.basemaps.cartocdn.com/light_all/${scene.zoom}/${tile.x}/${tile.y}.png`} x={tile.left} y={tile.top} width={TILE + 1} height={TILE + 1} preserveAspectRatio="none" />
         ))}
         {!address && <path className="p72-city-boundary" d={scene.perimeterPath} fillRule="evenodd" />}
-        {scene.addressPoint && routePaths.length > 0 && (
+        {showAlternatives && scene.addressPoint && (
           <defs>
-            <mask id="p72-radial-route-mask" maskUnits="userSpaceOnUse" x="0" y="0" width={WIDTH} height={HEIGHT}>
+            <mask id={radialMaskId} maskUnits="userSpaceOnUse" x="0" y="0" width={WIDTH} height={HEIGHT}>
               <rect width={WIDTH} height={HEIGHT} fill="black" />
               <circle cx={scene.addressPoint.x} cy={scene.addressPoint.y} r="0" fill="white">
                 <animate
@@ -133,14 +169,18 @@ export default function CityMap({ city, center, boundingBox, boundary, address }
             </mask>
           </defs>
         )}
-        <g className="p72-route-wave" mask={scene.addressPoint ? "url(#p72-radial-route-mask)" : undefined}>
+        {showAlternatives && <g className="p72-route-wave" mask={`url(#${radialMaskId})`}>
           {routePaths.map((route, index) => <path key={index} className="p72-route-preview" d={route} />)}
-        </g>
-        {scene.addressPoint && routePaths.length > 0 && (
+        </g>}
+        {showAlternatives && scene.addressPoint && (
           <circle className="p72-expansion-front" cx={scene.addressPoint.x} cy={scene.addressPoint.y} r="0">
             <animate attributeName="r" values="0;0;720;720;0" keyTimes="0;0.08;0.68;0.88;1" dur="5.2s" repeatCount="indefinite" />
           </circle>
         )}
+        {showConfirmed && <>
+          <path className="p72-confirmed-route-shadow" d={confirmedPath} pathLength="1" />
+          <path className="p72-confirmed-route" d={confirmedPath} pathLength="1" />
+        </>}
         {scene.addressPoint && (
           <g className="p72-address-marker" transform={`translate(${scene.addressPoint.x} ${scene.addressPoint.y})`}>
             <circle r="23" className="p72-address-pulse" />
@@ -148,16 +188,24 @@ export default function CityMap({ city, center, boundingBox, boundary, address }
             <circle cy="-10" r="5" />
           </g>
         )}
+        {showConfirmed && scene.destinationPoint && (
+          <g className="p72-safe-marker" transform={`translate(${scene.destinationPoint.x} ${scene.destinationPoint.y})`}>
+            <circle className="p72-safe-pulse" r="25" />
+            <circle className="p72-safe-core" r="17" />
+            <path d="M-7 0l5 5L8-7" />
+            <text y="-32" textAnchor="middle">ZONA SEGURA</text>
+          </g>
+        )}
       </svg>
       <div className="p72-map-topbar">
         <span className="p72-live-dot" />
         <strong>{city}</strong>
-        <small>{address ? "PUNTO DE PARTIDA LISTO" : "PERÍMETRO URBANO"}</small>
+        <small>{mode === "confirmed" ? "RUTA CONFIRMADA" : address ? "RUTAS POSIBLES" : "PERÍMETRO URBANO"}</small>
       </div>
       <div className="p72-map-legend">
         <span><i className="p72-legend-area" /> Área urbana</span>
         {address && <span><i className="p72-legend-start" /> Tu dirección</span>}
-        {address && <span><i className="p72-legend-route" /> Ruta preliminar</span>}
+        {address && <span><i className="p72-legend-route" /> {mode === "confirmed" ? "Ruta confirmada" : "Rutas posibles"}</span>}
       </div>
       <a className="p72-map-credit" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap · © CARTO</a>
     </div>

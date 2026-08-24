@@ -115,7 +115,32 @@ export default function CityMap({ city, center, boundingBox, boundary, address }
           <image key={`${tile.x}-${tile.y}`} href={`https://a.basemaps.cartocdn.com/light_all/${scene.zoom}/${tile.x}/${tile.y}.png`} x={tile.left} y={tile.top} width={TILE + 1} height={TILE + 1} preserveAspectRatio="none" />
         ))}
         {!address && <path className="p72-city-boundary" d={scene.perimeterPath} fillRule="evenodd" />}
-        {routePaths.map((route, index) => <path key={index} className="p72-route-preview" d={route} pathLength="1" style={{ animationDelay: `${index * 0.12}s` }} />)}
+        {scene.addressPoint && routePaths.length > 0 && (
+          <defs>
+            <mask id="p72-radial-route-mask" maskUnits="userSpaceOnUse" x="0" y="0" width={WIDTH} height={HEIGHT}>
+              <rect width={WIDTH} height={HEIGHT} fill="black" />
+              <circle cx={scene.addressPoint.x} cy={scene.addressPoint.y} r="0" fill="white">
+                <animate
+                  attributeName="r"
+                  values="0;0;720;720;0"
+                  keyTimes="0;0.08;0.68;0.88;1"
+                  dur="5.2s"
+                  repeatCount="indefinite"
+                  calcMode="spline"
+                  keySplines=".2 .8 .2 1;.2 .8 .2 1;.2 .8 .2 1;.4 0 .8 .2"
+                />
+              </circle>
+            </mask>
+          </defs>
+        )}
+        <g className="p72-route-wave" mask={scene.addressPoint ? "url(#p72-radial-route-mask)" : undefined}>
+          {routePaths.map((route, index) => <path key={index} className="p72-route-preview" d={route} />)}
+        </g>
+        {scene.addressPoint && routePaths.length > 0 && (
+          <circle className="p72-expansion-front" cx={scene.addressPoint.x} cy={scene.addressPoint.y} r="0">
+            <animate attributeName="r" values="0;0;720;720;0" keyTimes="0;0.08;0.68;0.88;1" dur="5.2s" repeatCount="indefinite" />
+          </circle>
+        )}
         {scene.addressPoint && (
           <g className="p72-address-marker" transform={`translate(${scene.addressPoint.x} ${scene.addressPoint.y})`}>
             <circle r="23" className="p72-address-pulse" />
